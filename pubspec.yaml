@@ -1,0 +1,25 @@
+name: otstudio
+description: A new Flutter project.
+
+publish_to: 'none'
+
+version: 0.0.1
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  bitmap: ^0.1.2
+  cupertino_icons: ^1.0.2
+  file_picker: ^4.1.0
+  image: ^3.0.5
+  toml: ^0.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
