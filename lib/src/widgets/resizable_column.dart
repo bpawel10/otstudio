@@ -7,14 +7,15 @@ class ResizableColumn extends StatefulWidget {
   final double minWidth;
   final Widget child;
 
-  const ResizableColumn({this.initialWidth, this.minWidth = 0, this.child});
+  const ResizableColumn(
+      {required this.initialWidth, this.minWidth = 0, required this.child});
 
   @override
   ResizableColumnState createState() => ResizableColumnState();
 }
 
 class ResizableColumnState extends State<ResizableColumn> {
-  double width;
+  double width = 0;
 
   @override
   initState() {

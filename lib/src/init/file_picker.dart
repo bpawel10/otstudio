@@ -7,9 +7,9 @@ class FilePicker extends StatefulWidget {
   final Function(String) onPickFile;
 
   const FilePicker({
-    this.label,
-    this.extensions,
-    this.onPickFile,
+    this.label = '',
+    required this.extensions,
+    required this.onPickFile,
   });
 
   @override
@@ -20,14 +20,14 @@ class FilePickerState extends State<FilePicker> {
   @override
   Widget build(BuildContext context) => TextButton(
         onPressed: () async {
-          fp.FilePickerResult result = await fp.FilePicker.platform.pickFiles(
+          fp.FilePickerResult? result = await fp.FilePicker.platform.pickFiles(
               type: fp.FileType.custom,
               allowedExtensions: widget.extensions,
               withReadStream: true);
           if (result != null) {
-            widget.onPickFile(result.files.single.path);
+            widget.onPickFile(result.files.single.path ?? '');
           }
         },
-        child: Text(widget.label ?? ''),
+        child: Text(widget.label),
       );
 }

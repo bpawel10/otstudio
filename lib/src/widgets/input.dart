@@ -5,13 +5,13 @@ class Input extends StatelessWidget {
   final String value;
   final dynamic onChanged;
 
-  Input({this.label, this.value, this.onChanged});
+  Input({this.label = '', this.value = '', this.onChanged});
 
   @override
   Widget build(BuildContext context) => Row(children: [
         Padding(
             padding: EdgeInsets.fromLTRB(0, 0, 5, 2),
-            child: Text(label ?? '', style: TextStyle(fontSize: 11))),
+            child: Text(label, style: TextStyle(fontSize: 11))),
         Expanded(
             child: TextFormField(
           decoration: InputDecoration(

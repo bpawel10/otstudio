@@ -11,35 +11,38 @@ import './map_painter.dart';
 const TILE_SIZE = 32;
 
 class Map extends StatefulWidget {
+  final AreaMap? map;
   final int width;
   final int height;
-  final Item selectedItem;
+  final Item? selectedItem;
 
-  Map({this.width, this.height, this.selectedItem});
+  Map({this.map, required this.width, required this.height, this.selectedItem});
 
   @override
   MapState createState() => MapState();
 }
 
 class MapState extends State<Map> {
-  AreaMap map = AreaMap.empty();
+  late AreaMap map;
   // Offset offset;
-  Size size;
+  late Size size;
   // double zoom = 1;
-  Offset mouse;
-  Position adding;
+  Offset? mouse;
+  Position? adding;
   bool repaint = false;
-  TransformationController controller;
+  late TransformationController controller;
 
   @override
   initState() {
     super.initState();
+    map = widget.map ?? AreaMap.empty();
+    print('map width ${map.width} height ${map.height}');
     // double tileSize = getTileSize();
     size = Size(widget.width.toDouble() * TILE_SIZE,
         widget.height.toDouble() * TILE_SIZE);
     print('size $size');
     WidgetsBinding.instance
-        .addPostFrameCallback((_) => setState(() => repaint = false));
+        ?.addPostFrameCallback((_) => setState(() => repaint = false));
     // offset = Offset(size.width / 2, size.height / 2);
     // print('offset $offset');
     controller = TransformationController(
@@ -66,9 +69,9 @@ class MapState extends State<Map> {
       Position tapPosition = offsetToPosition(tapOffset);
       print('addItem, tapPosition ${tapPosition.x} ${tapPosition.y}');
       if (adding == null ||
-          (tapPosition.x != adding.x ||
-              tapPosition.y != adding.y ||
-              tapPosition.z != adding.z)) {
+          (tapPosition.x != adding?.x ||
+              tapPosition.y != adding?.y ||
+              tapPosition.z != adding?.z)) {
         // print('tapPosition ' +
         //     tapPosition.x.toString() +
         //     ', ' +
@@ -79,7 +82,7 @@ class MapState extends State<Map> {
           adding = tapPosition;
           repaint = true;
         });
-        map.addItem(tapPosition, widget.selectedItem);
+        map.addItem(tapPosition, widget.selectedItem!);
       }
     }
   }

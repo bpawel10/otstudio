@@ -4,6 +4,9 @@ import 'package:bitmap/bitmap.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:otstudio/src/progress_tracker.dart';
+import 'package:otstudio/src/serializers/disk_serializer.dart';
+import 'package:otstudio/src/serializers/map/otbm_serializer.dart';
 import '../loaders/items_loader.dart';
 import '../models/item.dart';
 import './map.dart';
@@ -12,10 +15,18 @@ import '../models/position.dart';
 import '../models/tile.dart';
 import '../models/area_map.dart';
 import 'dart:ui' as ui;
+import '../models/texture.dart' as t;
 
 const TILE_SIZE = 32;
 
+Future<AreaMap> computeLoadMap(
+    ProgressTracker<DiskSerializerDeserializePayload> tracker) async {
+  OtbmSerializer serializer = OtbmSerializer();
+  return serializer.deserialize(tracker);
+}
+
 class Editor extends StatefulWidget {
+  final String? otbmFilePath;
   final String itemsFilePath;
   final String sprFilePath;
   final String datFilePath;
@@ -23,31 +34,49 @@ class Editor extends StatefulWidget {
   final int height;
 
   Editor(
-      {this.itemsFilePath,
-      this.sprFilePath,
-      this.datFilePath,
-      this.width,
-      this.height});
+      {this.otbmFilePath,
+      required this.itemsFilePath,
+      required this.sprFilePath,
+      required this.datFilePath,
+      required this.width,
+      required this.height});
 
   @override
   EditorState createState() => EditorState();
 }
 
 class EditorState extends State<Editor> {
-  List<Item> items;
-  int selectedItemIndex;
-  Future<List<Item>> itemsLoaderFuture;
-  ItemsLoaderProgress progress;
+  late AreaMap map;
+  late List<Item> items = [];
+  int? selectedItemIndex;
+  // late Future<List<Item>> itemsLoaderFuture;
+  late ItemsLoaderProgress itemsProgress = ItemsLoaderProgress();
+
+  //late Future<AreaMap>? otbmSerializerFuture;
+  late double mapProgress = 0;
+
+  late Future<EditorData> loadDataFuture;
 
   @override
   initState() {
     super.initState();
-    itemsLoaderFuture = loadItems();
+    loadDataFuture = loadData();
+    // itemsLoaderFuture = loadItems();
+    // if (widget.otbmFilePath != null) {
+    //   otbmSerializerFuture = loadMap();
+    // }
+  }
+
+  Future<EditorData> loadData() async {
+    List<Item> items = await loadItems();
+    AreaMap map = await loadMap();
+    return EditorData(items: items, map: map);
   }
 
   Future<List<Item>> loadItems() async {
     ReceivePort receivePort = ReceivePort();
-    receivePort.listen((progress) => setState(() => this.progress = progress));
+    receivePort
+        .listen((progress) => setState(() => this.itemsProgress = progress));
     ItemsLoaderPayload payload = ItemsLoaderPayload(
       itemsFilePath: widget.itemsFilePath,
       sprFilePath: widget.sprFilePath,
@@ -57,30 +86,62 @@ class EditorState extends State<Editor> {
     List<Item> items = await compute(ItemsLoader.load, payload);
     int i = 0;
     await Future.forEach(items, (Item item) async {
-      item.image = ItemsLoader.getImage(item.bitmap);
-      ui.Image uiImage = await ItemsLoader.getUiImage(item.bitmap);
-      item.uiImage = uiImage;
-
-      List<Image> images = List.empty(growable: true);
-      item.sprites.forEach((bitmap) async {
-        Image spriteImage = ItemsLoader.getImage(bitmap);
-        images.add(spriteImage);
+      await Future.forEach(item.textures, (t.Texture texture) async {
+        ui.Image uiImage = await ItemsLoader.getUiImage(texture.bitmap);
+        texture.image = uiImage;
       });
-      item.images = images;
 
-      setState(() => progress.itemsProgress = (i + 1) / items.length / 2 + 0.5);
+      // item.image = ItemsLoader.getImage(item.bitmap);
+      // ui.Image uiImage = await ItemsLoader.getUiImage(item.bitmap);
+      // item.uiImage = uiImage;
+
+      // List<Image> images = List.empty(growable: true);
+      // item.sprites.forEach((bitmap) async {
+      //   Image spriteImage = ItemsLoader.getImage(bitmap);
+      //   images.add(spriteImage);
+      // });
+      // item.images = images;
+
+      setState(
+          () => itemsProgress.itemsProgress = (i + 1) / items.length / 2 + 0.5);
       i++;
     });
     return items;
   }
 
+  Future<AreaMap> loadMap() async {
+    print('loadMap');
+    if (widget.otbmFilePath == null) {
+      return AreaMap.empty(width: widget.width, height: widget.height);
+    }
+
+    ReceivePort receivePort = ReceivePort();
+    receivePort
+        .listen((progress) => setState(() => this.mapProgress = progress));
+    print('compute deserialize');
+
+    AreaMap map = await compute(
+        computeLoadMap,
+        ProgressTracker(DiskSerializerDeserializePayload(widget.otbmFilePath!),
+            receivePort.sendPort));
+    print('loaded map $map width ${map.width} height ${map.height}');
+    return map;
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
-      body: FutureBuilder<List<Item>>(
-          future: itemsLoaderFuture,
+      body: FutureBuilder<EditorData>(
+          // List<Item>>(
+          future: loadDataFuture, // otbmSerializerFuture, // itemsLoaderFuture,
           builder: (context, snapshot) {
+            print('snapshot');
+            if (snapshot.hasError) {
+              print('error ${snapshot.error}');
+            }
             if (snapshot.hasData) {
-              items = snapshot.data;
+              items = snapshot.data?.items as List<Item>;
+              map = snapshot.data?.map as AreaMap;
+              // items = snapshot.data!;
               return Container(
                   child: Row(children: [
                 ResizableColumn(
@@ -107,35 +168,40 @@ class EditorState extends State<Editor> {
                                         child: Padding(
                                             padding: EdgeInsets.all(2),
                                             child: Row(children: [
-                                              SizedBox(
-                                                  width: TILE_SIZE.toDouble(),
-                                                  height: TILE_SIZE.toDouble(),
-                                                  // TODO: use container with rounded corners instead
-                                                  child: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              3),
-                                                      child:
-                                                          items[index].image)),
+                                              // SizedBox(
+                                              //     width: TILE_SIZE.toDouble(),
+                                              //     height: TILE_SIZE.toDouble(),
+                                              //     // TODO: use container with rounded corners instead
+                                              //     child: ClipRRect(
+                                              //         borderRadius:
+                                              //             BorderRadius.circular(
+                                              //                 3),
+                                              //         child: Image.memory(
+                                              //             items[index]
+                                              //                 .texture
+                                              //                 .bitmap))),
                                               Padding(
                                                   padding:
                                                       EdgeInsets.only(left: 10),
                                                   child: Row(
                                                       children: items[index]
-                                                          .images
-                                                          .map((image) =>
-                                                              SizedBox(
-                                                                  width: TILE_SIZE
-                                                                      .toDouble(),
-                                                                  height: TILE_SIZE
-                                                                      .toDouble(),
-                                                                  // TODO: use container with rounded corners instead
-                                                                  child: ClipRRect(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
+                                                          .textures
+                                                          .map((texture) =>
+                                                              // SizedBox(
+                                                              //     width: TILE_SIZE
+                                                              //         .toDouble(),
+                                                              //     height: TILE_SIZE
+                                                              //         .toDouble(),
+                                                              //     // TODO: use container with rounded corners instead
+                                                              //     child:
+                                                              ClipRRect(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
                                                                               3),
-                                                                      child:
-                                                                          image)))
+                                                                  child: Image
+                                                                      .memory(texture
+                                                                          .bitmap)))
                                                           .toList())),
                                               Padding(
                                                   padding:
@@ -186,10 +252,10 @@ class EditorState extends State<Editor> {
                 //         .toList())),
                 Expanded(
                     child: Map(
-                  width: widget.width,
-                  height: widget.height,
+                  width: map.width, // widget.width,
+                  height: map.height, // widget.height,
                   selectedItem: selectedItemIndex != null
-                      ? items[selectedItemIndex]
+                      ? items[selectedItemIndex!]
                       : null,
                 )),
               ]));
@@ -200,33 +266,51 @@ class EditorState extends State<Editor> {
                           width: 120,
                           height: 23,
                           child: Visibility(
-                            visible: progress?.spritesProgress == null ||
-                                progress.spritesProgress < 1,
-                            child: Column(children: [
-                              // TODO: use container with rounded corners instead
-                              ClipRRect(
-                                  borderRadius: BorderRadius.circular(3),
-                                  child: LinearProgressIndicator(
-                                      value: progress?.spritesProgress ?? 0)),
-                              Padding(
-                                  padding: EdgeInsets.only(top: 2),
-                                  child: Text('Loading sprites')),
-                            ]),
-                            replacement: Column(children: [
-                              // TODO: use container with rounded corners instead
-                              ClipRRect(
-                                  borderRadius: BorderRadius.circular(3),
-                                  child: LinearProgressIndicator(
-                                      value: progress?.itemsProgress ?? 0)),
-                              Padding(
-                                  padding: EdgeInsets.only(top: 2),
-                                  child: Text('Loading items')),
-                            ]),
-                          )))
+                              visible: itemsProgress.spritesProgress < 1,
+                              child: Column(children: [
+                                // TODO: use container with rounded corners instead
+                                ClipRRect(
+                                    borderRadius: BorderRadius.circular(3),
+                                    child: LinearProgressIndicator(
+                                        value: itemsProgress.spritesProgress)),
+                                Padding(
+                                    padding: EdgeInsets.only(top: 2),
+                                    child: Text('Loading sprites')),
+                              ]),
+                              replacement: Visibility(
+                                visible: itemsProgress.itemsProgress < 1,
+                                child: Column(children: [
+                                  // TODO: use container with rounded corners instead
+                                  ClipRRect(
+                                      borderRadius: BorderRadius.circular(3),
+                                      child: LinearProgressIndicator(
+                                          value: itemsProgress.itemsProgress)),
+                                  Padding(
+                                      padding: EdgeInsets.only(top: 2),
+                                      child: Text('Loading items')),
+                                ]),
+                                replacement: Column(children: [
+                                  // TODO: use container with rounded corners instead
+                                  ClipRRect(
+                                      borderRadius: BorderRadius.circular(3),
+                                      child: LinearProgressIndicator(
+                                          value: mapProgress)),
+                                  Padding(
+                                      padding: EdgeInsets.only(top: 2),
+                                      child: Text('Loading map')),
+                                ]),
+                              ))))
 
                   // width: 60,
                   // height: 60,
                   );
             }
           }));
+}
+
+class EditorData {
+  List<Item> items;
+  AreaMap map;
+
+  EditorData({required this.items, required this.map});
 }

@@ -9,9 +9,10 @@ class Init extends StatefulWidget {
 }
 
 class InitState extends State<Init> {
-  String itemsFilePath;
-  String sprFilePath;
-  String datFilePath;
+  String? otbmFilePath;
+  String? itemsFilePath;
+  String? sprFilePath;
+  String? datFilePath;
   int width = 256;
   int height = 256;
 
@@ -27,9 +28,10 @@ class InitState extends State<Init> {
         context,
         MaterialPageRoute(
             builder: (_) => Editor(
-                itemsFilePath: this.itemsFilePath,
-                sprFilePath: this.sprFilePath,
-                datFilePath: this.datFilePath,
+                otbmFilePath: this.otbmFilePath,
+                itemsFilePath: this.itemsFilePath ?? '',
+                sprFilePath: this.sprFilePath ?? '',
+                datFilePath: this.datFilePath ?? '',
                 width: this.width,
                 height: this.height)));
   }
@@ -49,6 +51,18 @@ class InitState extends State<Init> {
                 'Create new map',
                 style: TextStyle(fontSize: 16),
               ),
+              Visibility(
+                  visible: otbmFilePath != null,
+                  child: Text(otbmFilePath ?? ''),
+                  replacement: FilePicker(
+                    label: 'Select map',
+                    extensions: ['otbm'],
+                    onPickFile: (path) {
+                      setState(() {
+                        otbmFilePath = path;
+                      });
+                    },
+                  )),
               Visibility(
                   visible: itemsFilePath != null,
                   child: Text(itemsFilePath ?? ''),

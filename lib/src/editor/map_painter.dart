@@ -14,11 +14,15 @@ class MapPainter extends CustomPainter {
   final AreaMap map;
   // final Offset offset;
   // final double zoom;
-  final Offset mouse;
-  final Item selectedItem;
+  final Offset? mouse;
+  final Item? selectedItem;
   final bool repaint;
 
-  MapPainter({this.map, this.mouse, this.selectedItem, this.repaint});
+  MapPainter(
+      {required this.map,
+      this.mouse,
+      this.selectedItem,
+      required this.repaint});
 
   // double getTileSize() {
   //   return TILE_SIZE * zoom;
@@ -98,7 +102,7 @@ class MapPainter extends CustomPainter {
     paintImage(
       canvas: canvas,
       rect: offset & Size.square(TILE_SIZE.toDouble()),
-      image: item.uiImage,
+      image: item.textures[0].image!,
       fit: BoxFit.fill,
     );
   }
@@ -117,8 +121,8 @@ class MapPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) async {
     paintTiles(canvas, size);
     if (mouse != null && selectedItem != null) {
-      Offset mouseTileOffset = offsetToTileOffset(mouse);
-      paintItem(canvas, mouseTileOffset, selectedItem);
+      Offset mouseTileOffset = offsetToTileOffset(mouse!);
+      paintItem(canvas, mouseTileOffset, selectedItem!);
     }
   }
 

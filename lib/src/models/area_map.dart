@@ -1,61 +1,68 @@
+import 'package:collection/collection.dart';
 import './item.dart';
 import './position.dart';
 import './tile.dart';
 
 class Area {
   String name;
-  List<Area> areas;
-  List<Tile> tiles;
+  late List<Area> areas;
+  late List<Tile> tiles;
 
-  Area({this.name, List<Area> areas, List<Tile> tiles})
-      : areas = areas ?? [],
-        tiles = tiles ?? [];
+  Area({required this.name, List<Area>? areas, List<Tile>? tiles}) {
+    this.areas = areas ?? List.empty(growable: true);
+    this.tiles = tiles ?? List.empty(growable: true);
+  }
 
-  getTileByPosition(Position position) {
+  Tile? getTileByPosition(Position position) {
+    print('area($name) getTileByPosition');
+    // print('area $name getTileByPosition tiles $tiles');
     // print('position ' +
     //     position.x.toString() +
     //     ', ' +
     //     position.y.toString() +
     //     ', ' +
     //     position.z.toString());
-    Tile tile = tiles.firstWhere(
-        (tile) =>
-            tile.position.x == position.x &&
-            tile.position.y == position.y &&
-            tile.position.z == position.z,
-        orElse: () => null);
+    Tile? tile = tiles.firstWhereOrNull((tile) =>
+        tile.position.x == position.x &&
+        tile.position.y == position.y &&
+        tile.position.z == position.z);
     return tile ??
         areas.fold(
             null, (tile, area) => tile ?? area.getTileByPosition(position));
   }
 
-  getTiles() {
+  List<Tile> getTiles() {
+    print('area $name getTiles tiles $tiles');
     return tiles;
   }
 }
 
 class AreaMap {
-  List<Area> areas;
+  int width;
+  int height;
+  late List<Area> areas;
 
-  AreaMap({this.areas = const []});
-  AreaMap.empty() {
-    areas = [Area(name: 'root')];
-  }
+  AreaMap({required this.width, required this.height, this.areas = const []});
+  AreaMap.empty({int width = 256, int height = 256})
+      : this(width: width, height: height, areas: [Area(name: 'root')]);
 
-  addItem(Position position, Item item) {
+  void addItem(Position position, Item item) {
+    print('areamap addItem');
+    print('areas $areas');
     // print('areass: ' + areas.toString());
-    Tile tile = getTileByPosition(position);
+    Tile? tile = getTileByPosition(position);
+    print('areamap addItem tile $tile');
     if (tile != null) {
       tile.items.add(item);
     } else {
-      areas
-          .firstWhere((area) => area.name == 'root')
-          .tiles
-          .add(Tile(position: position, items: [item]));
+      Area rootArea = areas.firstWhere((area) => area.name == 'root');
+      print('rootArea tiles ${rootArea.tiles}');
+      rootArea.tiles.add(Tile(position: position, items: [item]));
     }
   }
 
-  getTileByPosition(Position position) {
+  Tile? getTileByPosition(Position position) {
+    print('areamap.getTileByPosition');
     return areas.fold(
         null, (tile, area) => tile ?? area.getTileByPosition(position));
   }
