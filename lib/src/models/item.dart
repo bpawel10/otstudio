@@ -6,6 +6,9 @@ import './texture.dart' as t;
 class Item {
   final int id;
   final String name;
+  final bool stackable;
+  final bool splash;
+  final bool fluidContainer;
   // final int spriteId;
   // final Uint8List bitmap;
   final List<t.Texture> textures;
@@ -18,6 +21,9 @@ class Item {
   Item({
     required this.id,
     required this.name,
+    this.stackable = false,
+    this.splash = false,
+    this.fluidContainer = false,
     this.textures = const [],
     // this.spriteId,
     // this.bitmap,

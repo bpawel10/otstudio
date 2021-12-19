@@ -19,15 +19,23 @@ import '../models/texture.dart' as t;
 
 const TILE_SIZE = 32;
 
-Future<AreaMap> computeLoadMap(
-    ProgressTracker<DiskSerializerDeserializePayload> tracker) async {
-  OtbmSerializer serializer = OtbmSerializer();
-  return serializer.deserialize(tracker);
+class ComputeLoadMapPayload {
+  ProgressTracker<DiskSerializerDeserializePayload> tracker;
+  List<Item> items;
+
+  ComputeLoadMapPayload(this.tracker, this.items);
+}
+
+Future<AreaMap> computeLoadMap(ComputeLoadMapPayload payload) async {
+  OtbmSerializer serializer = OtbmSerializer(payload.items);
+  return serializer.deserialize(payload.tracker);
 }
 
 class Editor extends StatefulWidget {
   final String? otbmFilePath;
-  final String itemsFilePath;
+  // final String itemsFilePath;
+  final String otbFilePath;
+  final String xmlFilePath;
   final String sprFilePath;
   final String datFilePath;
   final int width;
@@ -35,7 +43,9 @@ class Editor extends StatefulWidget {
 
   Editor(
       {this.otbmFilePath,
-      required this.itemsFilePath,
+      // required this.itemsFilePath,
+      required this.otbFilePath,
+      required this.xmlFilePath,
       required this.sprFilePath,
       required this.datFilePath,
       required this.width,
@@ -78,7 +88,9 @@ class EditorState extends State<Editor> {
     receivePort
         .listen((progress) => setState(() => this.itemsProgress = progress));
     ItemsLoaderPayload payload = ItemsLoaderPayload(
-      itemsFilePath: widget.itemsFilePath,
+      // itemsFilePath: widget.itemsFilePath,
+      otbFilePath: widget.otbFilePath,
+      xmlFilePath: widget.xmlFilePath,
       sprFilePath: widget.sprFilePath,
       datFilePath: widget.datFilePath,
       sendPort: receivePort.sendPort,
@@ -106,6 +118,7 @@ class EditorState extends State<Editor> {
           () => itemsProgress.itemsProgress = (i + 1) / items.length / 2 + 0.5);
       i++;
     });
+
     return items;
   }
 
@@ -122,8 +135,11 @@ class EditorState extends State<Editor> {
 
     AreaMap map = await compute(
         computeLoadMap,
-        ProgressTracker(DiskSerializerDeserializePayload(widget.otbmFilePath!),
-            receivePort.sendPort));
+        ComputeLoadMapPayload(
+            ProgressTracker(
+                DiskSerializerDeserializePayload(widget.otbmFilePath!),
+                receivePort.sendPort),
+            items));
     print('loaded map $map width ${map.width} height ${map.height}');
     return map;
   }
@@ -134,7 +150,7 @@ class EditorState extends State<Editor> {
           // List<Item>>(
           future: loadDataFuture, // otbmSerializerFuture, // itemsLoaderFuture,
           builder: (context, snapshot) {
-            print('snapshot');
+            // print('snapshot');
             if (snapshot.hasError) {
               print('error ${snapshot.error}');
             }
@@ -252,6 +268,8 @@ class EditorState extends State<Editor> {
                 //         .toList())),
                 Expanded(
                     child: Map(
+                  map: map,
+                  items: items,
                   width: map.width, // widget.width,
                   height: map.height, // widget.height,
                   selectedItem: selectedItemIndex != null

@@ -7,11 +7,13 @@ import '../models/tile.dart';
 import 'dart:ui' as ui;
 import 'package:bitmap/bitmap.dart';
 import '../loaders/items_loader.dart';
+import '../models/texture.dart' as t;
 
 const TILE_SIZE = 32;
 
 class MapPainter extends CustomPainter {
   final AreaMap map;
+  final List<Item> items;
   // final Offset offset;
   // final double zoom;
   final Offset? mouse;
@@ -20,6 +22,7 @@ class MapPainter extends CustomPainter {
 
   MapPainter(
       {required this.map,
+      required this.items,
       this.mouse,
       this.selectedItem,
       required this.repaint});
@@ -99,10 +102,11 @@ class MapPainter extends CustomPainter {
 
   paintItem(Canvas canvas, Offset offset, Item item) {
     // double tileSize = getTileSize();
+    t.Texture texture = items.firstWhere((i) => i.id == item.id).textures[0];
     paintImage(
       canvas: canvas,
       rect: offset & Size.square(TILE_SIZE.toDouble()),
-      image: item.textures[0].image!,
+      image: texture.image!, // item.textures[0].image!,
       fit: BoxFit.fill,
     );
   }

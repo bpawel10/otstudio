@@ -12,11 +12,17 @@ const TILE_SIZE = 32;
 
 class Map extends StatefulWidget {
   final AreaMap? map;
+  final List<Item> items;
   final int width;
   final int height;
   final Item? selectedItem;
 
-  Map({this.map, required this.width, required this.height, this.selectedItem});
+  Map(
+      {this.map,
+      required this.items,
+      required this.width,
+      required this.height,
+      this.selectedItem});
 
   @override
   MapState createState() => MapState();
@@ -115,6 +121,7 @@ class MapState extends State<Map> {
                         size: size,
                         painter: MapPainter(
                           map: map,
+                          items: widget.items,
                           // offset: offset,
                           // zoom: zoom,
                           mouse: mouse,

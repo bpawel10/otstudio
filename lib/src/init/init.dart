@@ -10,14 +10,18 @@ class Init extends StatefulWidget {
 
 class InitState extends State<Init> {
   String? otbmFilePath;
-  String? itemsFilePath;
+  // String? itemsFilePath;
+  String? otbFilePath;
+  String? xmlFilePath;
   String? sprFilePath;
   String? datFilePath;
   int width = 256;
   int height = 256;
 
   bool canCreateMap() =>
-      itemsFilePath != null &&
+      // itemsFilePath != null &&
+      otbFilePath != null &&
+      xmlFilePath != null &&
       sprFilePath != null &&
       datFilePath != null &&
       width > 0 &&
@@ -29,7 +33,9 @@ class InitState extends State<Init> {
         MaterialPageRoute(
             builder: (_) => Editor(
                 otbmFilePath: this.otbmFilePath,
-                itemsFilePath: this.itemsFilePath ?? '',
+                // itemsFilePath: this.itemsFilePath ?? '',
+                otbFilePath: this.otbFilePath ?? '',
+                xmlFilePath: this.xmlFilePath ?? '',
                 sprFilePath: this.sprFilePath ?? '',
                 datFilePath: this.datFilePath ?? '',
                 width: this.width,
@@ -63,15 +69,39 @@ class InitState extends State<Init> {
                       });
                     },
                   )),
+              // Visibility(
+              //     visible: itemsFilePath != null,
+              //     child: Text(itemsFilePath ?? ''),
+              //     replacement: FilePicker(
+              //       label: 'Select items file',
+              //       extensions: ['toml'],
+              //       onPickFile: (path) {
+              //         setState(() {
+              //           itemsFilePath = path;
+              //         });
+              //       },
+              //     )),
               Visibility(
-                  visible: itemsFilePath != null,
-                  child: Text(itemsFilePath ?? ''),
+                  visible: otbFilePath != null,
+                  child: Text(otbFilePath ?? ''),
                   replacement: FilePicker(
-                    label: 'Select items file',
-                    extensions: ['toml'],
+                    label: 'Select items.otb file',
+                    extensions: ['otb'],
                     onPickFile: (path) {
                       setState(() {
-                        itemsFilePath = path;
+                        otbFilePath = path;
+                      });
+                    },
+                  )),
+              Visibility(
+                  visible: xmlFilePath != null,
+                  child: Text(xmlFilePath ?? ''),
+                  replacement: FilePicker(
+                    label: 'Select items.xml file',
+                    extensions: ['xml'],
+                    onPickFile: (path) {
+                      setState(() {
+                        xmlFilePath = path;
                       });
                     },
                   )),
