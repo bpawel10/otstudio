@@ -21,7 +21,7 @@ class InitState extends State<Init> {
   bool canCreateMap() =>
       // itemsFilePath != null &&
       otbFilePath != null &&
-      xmlFilePath != null &&
+      // xmlFilePath != null &&
       sprFilePath != null &&
       datFilePath != null &&
       width > 0 &&
@@ -93,18 +93,18 @@ class InitState extends State<Init> {
                       });
                     },
                   )),
-              Visibility(
-                  visible: xmlFilePath != null,
-                  child: Text(xmlFilePath ?? ''),
-                  replacement: FilePicker(
-                    label: 'Select items.xml file',
-                    extensions: ['xml'],
-                    onPickFile: (path) {
-                      setState(() {
-                        xmlFilePath = path;
-                      });
-                    },
-                  )),
+              // Visibility(
+              //     visible: xmlFilePath != null,
+              //     child: Text(xmlFilePath ?? ''),
+              //     replacement: FilePicker(
+              //       label: 'Select items.xml file',
+              //       extensions: ['xml'],
+              //       onPickFile: (path) {
+              //         setState(() {
+              //           xmlFilePath = path;
+              //         });
+              //       },
+              //     )),
               Visibility(
                   visible: sprFilePath != null,
                   child: Text(sprFilePath ?? ''),

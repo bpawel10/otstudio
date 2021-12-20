@@ -225,9 +225,10 @@ class ItemsLoader {
     return Image.memory(bitmap);
   }
 
-  static Future<ui.Image> getUiImage(Uint8List bitmap) async {
+  static Future<ui.Image> getUiImage(Uint8List bitmap,
+      {int width = SPRITE_SIZE, int height = SPRITE_SIZE}) async {
     ui.Codec codec = await ui.instantiateImageCodec(bitmap,
-        targetWidth: SPRITE_SIZE, targetHeight: SPRITE_SIZE);
+        targetWidth: width, targetHeight: height);
     ui.FrameInfo fi = await codec.getNextFrame();
     return fi.image;
   }
@@ -242,121 +243,126 @@ class ItemsLoader {
   //   return Item(id: id, textures: Lis t.Texture(sprite.pixels));
   // }
 
+  static Future<Map<int, Item>> loadOtbItems(String path) async {
+    Uint8List otbBytes = await File(path).readAsBytes();
+
+    // ReadBuffer otb = ReadBuffer(ByteData.view(otbBytes.buffer));
+    _OtbNode otb = _OtbNode(otbBytes.sublist(4));
+
+    // print('otb.node ${otb._node}');
+    // print('otb.node.length ${otb._node!.data.lengthInBytes}');
+    // print('otb.node.data ${otb._node!.data}');
+    // print('otb.children length ${otb.children.length}');
+
+    // otb.node.getUint32(endian: Endian.little); // 4 zeros, not sure why
+    // otb.node.getUint8(); // root node, 0xFE
+    otb.getUint8(); // first byte of otb is 0
+    otb.getUint32(); // 4 bytes flags, unused
+
+    int attr0 = otb.getUint8();
+    // print('attr0 $attr0');
+    if (attr0 == 0x01) {
+      // rootattribute.version
+      int dataLength = otb.getUint16();
+      int majorVersion = otb.getUint32();
+      int minorVersion = otb.getUint32();
+      int buildVersion = otb.getUint32();
+      // print('majorVersion $majorVersion minorVersion $minorVersion buildVersion $buildVersion');
+      otb.getUint8List(dataLength - 3 * 4);
+    }
+
+    List<_OtbNode> itemNodes = otb.children;
+    Map<int, Item> otbItems = Map();
+
+    itemNodes.forEach((itemNode) {
+      // print('itemNode ${itemNode._node!.data.buffer.asUint8List().toList()}');
+      int itemGroup = itemNode.getUint8();
+      int flags = itemNode.getUint32();
+      bool stackable =
+          (flags & _OtbItemFlag.stackable) == _OtbItemFlag.stackable;
+      bool splash = itemGroup == _OtbItemType.splash;
+      bool fluidContainer = itemGroup == _OtbItemType.fluid;
+
+      int serverId = 0;
+      int clientId = 0;
+      String name = '';
+      // int groundSpeed;
+      // int spriteHash;
+      // int minimapColor;
+      // int maxReadWriteChars;
+      // int maxReadChars;
+      // int light;
+      // int stackOrder;
+      // int tradeAs;
+
+      while (itemNode.hasRemaining) {
+        int attr = itemNode.getUint8();
+        // print('attr $attr');
+
+        int dataLength = itemNode.getUint16();
+
+        switch (attr) {
+          case _OtbItemAttribute.serverId:
+            serverId = itemNode.getUint16();
+            // read += 2;
+            break;
+          case _OtbItemAttribute.clientId:
+            clientId = itemNode.getUint16();
+            // read += 2;
+            break;
+          case _OtbItemAttribute.name:
+            int length = itemNode.getUint16();
+            name = String.fromCharCodes(itemNode.getUint8List(length));
+            // read += 2 + length;
+            break;
+          case _OtbItemAttribute.groundSpeed:
+            int groundSpeed = itemNode.getUint16();
+            // read += 2;
+            break;
+          case _OtbItemAttribute.spriteHash:
+            // print('sprite hash of length $dataLength');
+            Uint8List spriteHash = itemNode.getUint8List(dataLength);
+            break;
+          case _OtbItemAttribute.minimapColor:
+            int minimapColor = itemNode.getUint16();
+            break;
+          case _OtbItemAttribute.maxReadWriteChars:
+            int maxReadWriteChars = itemNode.getUint16();
+            break;
+          case _OtbItemAttribute.maxReadChars:
+            int maxReadChars = itemNode.getUint16();
+            break;
+          case _OtbItemAttribute.light:
+            int lightLevel = itemNode.getUint16();
+            int lightColor = itemNode.getUint16();
+            break;
+          case _OtbItemAttribute.stackOrder:
+            int stackOrder = itemNode.getUint8();
+            break;
+          case _OtbItemAttribute.tradeAs:
+            int tradeAs = itemNode.getUint16();
+            break;
+          default:
+            // print('skipping $dataLength bytes');
+            itemNode.getUint8List(dataLength);
+        }
+      }
+
+      // print('serverId $serverId clientId $clientId');
+
+      otbItems[clientId] = Item(
+          id: serverId,
+          name: name,
+          stackable: stackable,
+          splash: splash,
+          fluidContainer: fluidContainer);
+    });
+
+    return otbItems;
+  }
+
   static Future<List<Item>> load(ItemsLoaderPayload payload) async {
-    // String otbFilePath = payload.otbFilePath;
-    // Uint8List otbBytes = await File(otbFilePath).readAsBytes();
-
-    // // ReadBuffer otb = ReadBuffer(ByteData.view(otbBytes.buffer));
-    // _OtbNode otb = _OtbNode(otbBytes.sublist(4));
-
-    // // print('otb.node ${otb._node}');
-    // // print('otb.node.length ${otb._node!.data.lengthInBytes}');
-    // // print('otb.node.data ${otb._node!.data}');
-    // // print('otb.children length ${otb.children.length}');
-
-    // // otb.node.getUint32(endian: Endian.little); // 4 zeros, not sure why
-    // // otb.node.getUint8(); // root node, 0xFE
-    // otb.getUint8(); // first byte of otb is 0
-    // otb.getUint32(); // 4 bytes flags, unused
-
-    // int attr0 = otb.getUint8();
-    // // print('attr0 $attr0');
-    // if (attr0 == 0x01) {
-    //   // rootattribute.version
-    //   int dataLength = otb.getUint16();
-    //   int majorVersion = otb.getUint32();
-    //   int minorVersion = otb.getUint32();
-    //   int buildVersion = otb.getUint32();
-    //   // print('majorVersion $majorVersion minorVersion $minorVersion buildVersion $buildVersion');
-    //   otb.getUint8List(dataLength - 3 * 4);
-    // }
-
-    // List<_OtbNode> itemNodes = otb.children;
-    // Map<int, Item> otbItems = Map();
-
-    // itemNodes.forEach((itemNode) {
-    //   // print('itemNode ${itemNode._node!.data.buffer.asUint8List().toList()}');
-    //   int itemGroup = itemNode.getUint8();
-    //   int flags = itemNode.getUint32();
-    //   bool stackable =
-    //       (flags & _OtbItemFlag.stackable) == _OtbItemFlag.stackable;
-    //   bool splash = itemGroup == _OtbItemType.splash;
-    //   bool fluidContainer = itemGroup == _OtbItemType.fluid;
-
-    //   int serverId = 0;
-    //   int clientId = 0;
-    //   String name = '';
-    //   // int groundSpeed;
-    //   // int spriteHash;
-    //   // int minimapColor;
-    //   // int maxReadWriteChars;
-    //   // int maxReadChars;
-    //   // int light;
-    //   // int stackOrder;
-    //   // int tradeAs;
-
-    //   while (itemNode.hasRemaining) {
-    //     int attr = itemNode.getUint8();
-    //     // print('attr $attr');
-
-    //     int dataLength = itemNode.getUint16();
-
-    //     switch (attr) {
-    //       case _OtbItemAttribute.serverId:
-    //         serverId = itemNode.getUint16();
-    //         // read += 2;
-    //         break;
-    //       case _OtbItemAttribute.clientId:
-    //         clientId = itemNode.getUint16();
-    //         // read += 2;
-    //         break;
-    //       case _OtbItemAttribute.name:
-    //         int length = itemNode.getUint16();
-    //         name = String.fromCharCodes(itemNode.getUint8List(length));
-    //         // read += 2 + length;
-    //         break;
-    //       case _OtbItemAttribute.groundSpeed:
-    //         int groundSpeed = itemNode.getUint16();
-    //         // read += 2;
-    //         break;
-    //       case _OtbItemAttribute.spriteHash:
-    //         // print('sprite hash of length $dataLength');
-    //         Uint8List spriteHash = itemNode.getUint8List(dataLength);
-    //         break;
-    //       case _OtbItemAttribute.minimapColor:
-    //         int minimapColor = itemNode.getUint16();
-    //         break;
-    //       case _OtbItemAttribute.maxReadWriteChars:
-    //         int maxReadWriteChars = itemNode.getUint16();
-    //         break;
-    //       case _OtbItemAttribute.maxReadChars:
-    //         int maxReadChars = itemNode.getUint16();
-    //         break;
-    //       case _OtbItemAttribute.light:
-    //         int lightLevel = itemNode.getUint16();
-    //         int lightColor = itemNode.getUint16();
-    //         break;
-    //       case _OtbItemAttribute.stackOrder:
-    //         int stackOrder = itemNode.getUint8();
-    //         break;
-    //       case _OtbItemAttribute.tradeAs:
-    //         int tradeAs = itemNode.getUint16();
-    //         break;
-    //       default:
-    //         // print('skipping $dataLength bytes');
-    //         itemNode.getUint8List(dataLength);
-    //     }
-    //   }
-
-    //   // print('serverId $serverId clientId $clientId');
-
-    //   otbItems[serverId] = Item(
-    //       id: serverId,
-    //       name: name,
-    //       stackable: stackable,
-    //       splash: splash,
-    //       fluidContainer: fluidContainer);
-    // });
+    Map<int, Item> otbItems = await loadOtbItems(payload.otbFilePath);
 
     // String itemsFilePath = payload.itemsFilePath;
     String sprFilePath = payload.sprFilePath;
@@ -501,22 +507,28 @@ class ItemsLoader {
       //       'Item $id, stackable ${otbItem.stackable}, splash ${otbItem.splash}, fluidContainer ${otbItem.fluidContainer}');
       // }
 
-      if (stackable) {
-        print('item $id stackable');
-      }
+      // if (stackable) {
+      //   print('item $id stackable');
+      // }
 
-      if (splash) {
-        print('item $id splash');
-      }
+      // if (splash) {
+      //   print('item $id splash');
+      // }
 
-      if (fluidContainer) {
-        print('item $id fluidContainer');
+      // if (fluidContainer) {
+      //   print('item $id fluidContainer');
+      // }
+
+      Item? otbItem = otbItems[id];
+
+      if (otbItem != null) {
+        id = otbItem.id;
       }
 
       items.add(Item(
         id: id,
-        name:
-            'spritesCount $spritesCount, width $width, height $height, layers $layers, patterns x $patterns_x, patterns y $patterns_y, patterns z $patterns_z, frames $frames',
+        name: '',
+        // 'spritesCount $spritesCount, width $width, height $height, layers $layers, patterns x $patterns_x, patterns y $patterns_y, patterns z $patterns_z, frames $frames',
         stackable: stackable,
         splash: splash,
         fluidContainer: fluidContainer,

@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:otstudio/src/editor/cursor_painter.dart';
 import '../models/area_map.dart';
 import '../models/item.dart';
 import '../models/position.dart';
@@ -30,9 +32,10 @@ class Map extends StatefulWidget {
 
 class MapState extends State<Map> {
   late AreaMap map;
-  // Offset offset;
+  late Offset offset;
   late Size size;
   // double zoom = 1;
+  // double scale = 1;
   Offset? mouse;
   Position? adding;
   bool repaint = false;
@@ -47,12 +50,15 @@ class MapState extends State<Map> {
     size = Size(widget.width.toDouble() * TILE_SIZE,
         widget.height.toDouble() * TILE_SIZE);
     print('size $size');
+    offset = Offset(32369 * TILE_SIZE.toDouble(),
+        32241 * TILE_SIZE.toDouble()); // size.width / 2, size.height / 2);
+    print('offset $offset');
     WidgetsBinding.instance
         ?.addPostFrameCallback((_) => setState(() => repaint = false));
     // offset = Offset(size.width / 2, size.height / 2);
     // print('offset $offset');
     controller = TransformationController(
-        Matrix4.identity()..translate(-size.width / 2, -size.width / 2));
+        Matrix4.identity()..translate(-offset.dx, -offset.dy));
   }
 
   // double getTileSize() {
@@ -99,11 +105,21 @@ class MapState extends State<Map> {
     print('repaint $repaint');
     return Container(
         color: Colors.black,
+        // child: Scrollbar(
         child: InteractiveViewer(
             constrained: false,
             transformationController: controller,
             minScale: 0.01,
             maxScale: 10,
+            // onInteractionUpdate: (details) {
+            //   // offset = details.focalPoint;
+            //   // scale = details.scale;
+            //   print(
+            //       'delta ${details.focalPointDelta} offset $offset localOffset ${details.localFocalPoint} scale $scale');
+
+            //   // scale = details.scale;
+            //   // offset -= details.focalPointDelta / scale;
+            // },
             child: GestureDetector(
                 onPanDown: (DragDownDetails details) =>
                     addItem(details.localPosition),
@@ -117,17 +133,25 @@ class MapState extends State<Map> {
                     onHover: (PointerHoverEvent event) =>
                         setState(() => mouse = event.localPosition),
                     onExit: (_) => setState(() => mouse = null),
-                    child: CustomPaint(
-                        size: size,
-                        painter: MapPainter(
-                          map: map,
-                          items: widget.items,
-                          // offset: offset,
-                          // zoom: zoom,
-                          mouse: mouse,
-                          selectedItem: widget.selectedItem,
-                          repaint: repaint,
-                        ))))));
+                    child: RepaintBoundary(
+                        child: CustomPaint(
+                      size: size,
+                      painter: MapPainter(
+                        map: map,
+                        position: offsetToPosition(offset),
+                        items: widget.items,
+                        // offset: offset,
+                        // zoom: zoom,
+                        mouse: mouse,
+                        selectedItem: widget.selectedItem,
+                        // repaint: repaint,
+                      ),
+                      // foregroundPainter: CursorPainter(
+                      //     map: map,
+                      //     items: widget.items,
+                      //     mouse: mouse,
+                      //     selectedItem: widget.selectedItem),
+                    ))))));
   }
 
   // @override

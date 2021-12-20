@@ -99,7 +99,8 @@ class EditorState extends State<Editor> {
     int i = 0;
     await Future.forEach(items, (Item item) async {
       await Future.forEach(item.textures, (t.Texture texture) async {
-        ui.Image uiImage = await ItemsLoader.getUiImage(texture.bitmap);
+        ui.Image uiImage = await ItemsLoader.getUiImage(texture.bitmap,
+            width: texture.width, height: texture.height);
         texture.image = uiImage;
       });
 
@@ -198,10 +199,11 @@ class EditorState extends State<Editor> {
                                               //                 .bitmap))),
                                               Padding(
                                                   padding:
-                                                      EdgeInsets.only(left: 10),
+                                                      EdgeInsets.only(left: 2),
                                                   child: Row(
                                                       children: items[index]
                                                           .textures
+                                                          .take(1)
                                                           .map((texture) =>
                                                               // SizedBox(
                                                               //     width: TILE_SIZE
@@ -210,20 +212,23 @@ class EditorState extends State<Editor> {
                                                               //         .toDouble(),
                                                               //     // TODO: use container with rounded corners instead
                                                               //     child:
-                                                              ClipRRect(
-                                                                  borderRadius:
-                                                                      BorderRadius
-                                                                          .circular(
+                                                              SizedBox.square(
+                                                                  dimension:
+                                                                      SPRITE_SIZE
+                                                                          .toDouble(),
+                                                                  child: ClipRRect(
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
                                                                               3),
-                                                                  child: Image
-                                                                      .memory(texture
-                                                                          .bitmap)))
+                                                                      child: Image.memory(
+                                                                          texture
+                                                                              .bitmap))))
                                                           .toList())),
                                               Padding(
                                                   padding:
                                                       EdgeInsets.only(left: 5),
                                                   child: Text(
-                                                      '${items[index].id.toString()} (${items[index].name})'))
+                                                      '${items[index].id.toString()}'))
                                             ])))))))),
                 // Text('spriteId:' + items[index].spriteId.toString())
                 // child: ListView(

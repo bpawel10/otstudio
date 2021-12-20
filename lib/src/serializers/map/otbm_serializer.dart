@@ -8,6 +8,9 @@ import 'package:otstudio/src/progress_tracker.dart';
 import 'package:otstudio/src/serializers/disk_serializer.dart';
 
 class OtbmSerializer extends DiskSerializer<AreaMap> {
+  static const FLOORS = 16;
+  static const TILE_AREA_TILES = 256 * 256;
+
   List<Item> items;
 
   OtbmSerializer(this.items);
@@ -26,151 +29,230 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
     print('bytes length ${bytes.length}');
     // ReadBuffer otbm = ReadBuffer(ByteData.view(bytes.buffer));
 
+    _OtbmReader otbm = _OtbmReader(bytes);
+
     // String identifier = String.fromCharCodes(otbm.getUint8List(4));
     // print('identifier $identifier');
 
     AreaMap map = AreaMap.empty();
 
-    print('a');
-    _OtbmNode rootNode = _OtbmNode(bytes.sublist(4));
-    print('b');
+    otbm.getUint32();
 
-    print('rootNode.type ${rootNode.type}');
-
-    if (rootNode.type == _OtbmNodeType.root) {
-      int version = rootNode.getUint32();
+    if (otbm.getNode() == _OtbmNodeType.root) {
+      int version = otbm.getUint32();
       print('version $version');
-      int width = rootNode.getUint16();
+      int width = otbm.getUint16();
       map.width = width;
       print('width $width');
-      int height = rootNode.getUint16();
-
+      int height = otbm.getUint16();
       map.height = height;
       print('height $height');
-      int itemsMajorVersion = rootNode.getUint32();
-      int itemsMinorVersion = rootNode.getUint32();
+      int itemsMajorVersion = otbm.getUint32();
+      int itemsMinorVersion = otbm.getUint32();
 
-      _OtbmNode mapDataNode = rootNode.children.first;
+      int TOTAL_TILES_PER_FLOOR = width * height;
+      int TOTAL_TILES = TOTAL_TILES_PER_FLOOR * FLOORS;
 
-      print('aaa');
-      print('mapDataNode.type ${mapDataNode.type}');
-      print('bbb');
+      int TOTAL_TILE_AREAS = (width * height * FLOORS / TILE_AREA_TILES).ceil();
+      int tileAreas = 0;
 
-      if (mapDataNode.type == _OtbmNodeType.mapData) {
-        while (mapDataNode.hasRemaining) {
-          int attr = mapDataNode.getUint8();
+      if (otbm.getNode() == _OtbmNodeType.mapData) {
+        int byte = otbm.getUint8();
 
-          switch (attr) {
+        while (byte != _OtbmSpecialCharacter.end) {
+          // print('byte0 $byte');
+          switch (byte) {
             case _OtbmAttribute.description:
-              int length = mapDataNode.getUint16();
-              String description =
-                  String.fromCharCodes(mapDataNode.getUint8List(length));
+              String description = otbm.getString();
               print('description $description');
               break;
             case _OtbmAttribute.extFile:
-              int length = mapDataNode.getUint16();
-              String extFile =
-                  String.fromCharCodes(mapDataNode.getUint8List(length));
+              String extFile = otbm.getString();
               print('extFile $extFile');
               break;
             case _OtbmAttribute.extSpawnFile:
-              int length = mapDataNode.getUint16();
-              String extSpawnFile =
-                  String.fromCharCodes(mapDataNode.getUint8List(length));
+              String extSpawnFile = otbm.getString();
               print('extSpawnFile $extSpawnFile');
               break;
             case _OtbmAttribute.extHouseFile:
-              int length = mapDataNode.getUint16();
-              String extHouseFile =
-                  String.fromCharCodes(mapDataNode.getUint8List(length));
+              String extHouseFile = otbm.getString();
               print('extHouseFile $extHouseFile');
               break;
-          }
-        }
+            case _OtbmSpecialCharacter.start:
+              int byte1 = byte;
 
-        _OtbmNode tileAreaNode = mapDataNode.children.first;
+              // print('byte1 $byte1');
 
-        print('mapDataNode.children length ${mapDataNode.children.length}');
+              while (byte1 != _OtbmSpecialCharacter.end) {
+                int byte1Type = otbm.getUint8();
+                // print('byte1Type $byte1Type');
+                if (byte1Type == _OtbmNodeType.tileArea) {
+                  // print('tile area node');
+                  int offsetX = otbm.getUint16();
+                  int offsetY = otbm.getUint16();
+                  int offsetZ = otbm.getUint8();
+                  // print('offsetX $offsetX offsetY $offsetY offsetZ $offsetZ');
 
-        if (tileAreaNode.type == _OtbmNodeType.tileArea) {
-          int offsetX = tileAreaNode.getUint16();
-          int offsetY = tileAreaNode.getUint16();
-          int offsetZ = tileAreaNode.getUint8();
-          print('offsetX $offsetX offsetY $offsetY offsetZ $offsetZ');
+                  int byte2 = otbm.getUint8();
 
-          tileAreaNode.children.forEach((tileNode) {
-            if ([_OtbmNodeType.tile, _OtbmNodeType.houseTile]
-                .contains(tileNode.type)) {
-              int x = tileNode.getUint8();
-              int y = tileNode.getUint8();
-              print('x $x y $y');
+                  while (byte2 != _OtbmSpecialCharacter.end) {
+                    // print('byte2 $byte2');
 
-              int? groundId;
+                    int tileType = otbm.getUint8();
+                    if ([_OtbmNodeType.tile, _OtbmNodeType.houseTile]
+                        .contains(tileType)) {
+                      // print('tile/housetile node');
+                      int x = otbm.getUint8();
+                      int y = otbm.getUint8();
+                      // print('x $x y $y');
 
-              int tileAttr = tileNode.getUint8();
+                      Position position =
+                          Position(offsetX + x, offsetY + y, offsetZ);
 
-              Position position = Position(offsetX + x, offsetY + y, offsetZ);
+                      int? groundId;
 
-              switch (tileAttr) {
-                case _OtbmAttribute.tileFlags:
-                  int tileFlags = tileNode.getUint32();
-                  break;
-                case _OtbmAttribute.item:
-                  groundId = tileNode.getUint16();
-                  break;
-              }
+                      int byte3 = otbm.getUint8();
 
-              if (groundId != null) {
-                map.addItem(
-                    position, Item(id: groundId, name: groundId.toString()));
-              }
+                      while (byte3 != _OtbmSpecialCharacter.end) {
+                        // print('byte3 $byte3');
 
-              if (tileNode.type == _OtbmNodeType.houseTile) {
-                int houseId = tileNode.getUint32();
-              }
+                        // print('tileAttr $tileAttr');
 
-              tileNode.children.forEach((node) {
-                if (node.type == _OtbmNodeType.item) {
-                  int? itemId;
+                        switch (byte3) {
+                          case _OtbmAttribute.tileFlags:
+                            int tileFlags = otbm.getUint32();
+                            break;
+                          case _OtbmAttribute.item:
+                            groundId = otbm.getUint16();
+                            break;
+                        }
 
-                  int attr = node.getUint8();
+                        if (groundId != null) {
+                          // print('groundId $groundId');
+                          map.addItem(
+                              position,
+                              Item(
+                                id: groundId,
+                                name: groundId.toString(),
+                                ground: true,
+                              ));
+                        }
 
-                  switch (attr) {
-                    case _OtbmAttribute.item:
-                      itemId = node.getUint16();
+                        if (tileType == _OtbmNodeType.houseTile) {
+                          int houseId = otbm.getUint32();
+                        }
 
-                      if (version == 1 &&
-                          (items[itemId].stackable ||
-                              items[itemId].splash ||
-                              items[itemId].fluidContainer)) {
-                        int subtype = node.getUint8();
-                        print('item $itemId subtype $subtype');
+                        Item? item =
+                            otbm.getItem(byte3, position, version, items);
+
+                        if (item != null) {
+                          map.addItem(position, item);
+                        }
+
+                        byte3 = otbm.getUint8();
+
+                        // print('byte3.2 $byte3');
                       }
-                      break;
-                    default:
-                      _readAttribute(node.buffer, attr);
+
+                      byte2 = otbm.getUint8();
+
+                      // print('byte2.2 $byte2');
+                    }
+
+                    // byte2 = otbm.getUint8();
+
+                    // print('byte2.2 $byte2');
                   }
 
-                  if (itemId != null) {
-                    map.addItem(
-                        position, Item(id: itemId, name: itemId.toString()));
-                  }
+                  // byte1 = otbm.getUint8();
+
+                  // print('byte1.2 $byte');
+
+                  // tileAreas++;
+                  // print(
+                  //     'tileAreas $tileAreas TOTAL_TILE_AREAS $TOTAL_TILE_AREAS');
+                  // tracker.progress = tileAreas / TOTAL_TILE_AREAS;
+
+                  tracker.progress = otbm
+                      .getProgress(); // offsetX * offsetY / TOTAL_TILES_PER_FLOOR;
                 }
-              });
-            }
-          });
+
+                byte1 = otbm.getUint8();
+
+                // print('byte1.2 $byte1');
+              }
+          }
+
+          byte = otbm.getUint8();
+
+          // print('byte0.2 $byte');
         }
+
+        // if (node == _OtbmSpecialCharacter.end) {
+        // node = otbm.getNode();
+        // }
       }
     }
 
+    map.getVisibleTilesForPosition(Position(32369, 32241, 7)); // size));
+
     print(
-        'deserialized otbm map ${map.toString()} width ${map.width} height ${map.height}');
-    debugPrint(map.getTiles().toString());
+        'deserialized otbm map ${map.toString()} width ${map.width} height ${map.height} tiles ${map.tiles.length}');
+    // debugPrint(map.getTiles().toString());
 
     return map;
   }
 
-  void _readAttribute(ReadBuffer buffer, int attribute) {
+  // int _readNode(ReadBuffer buffer) {
+  //   int byte = buffer.getUint8();
+
+  //   if (byte == _OtbmSpecialCharacter.start) {
+  //     int type = buffer.getUint8();
+  //     return type;
+  //   }
+  // }
+
+  // String readString(ReadBuffer buffer) {
+  //   int length = buffer.getUint16(endian: Endian.little);
+  //   String string = String.fromCharCodes(buffer.getUint8List(length));
+  //   return string;
+  // }
+}
+
+class _OtbmReader {
+  late ReadBuffer reader;
+  int pos = 0;
+
+  _OtbmReader(Uint8List bytes) {
+    reader = ReadBuffer(ByteData.view(bytes.buffer));
+  }
+
+  double getProgress() {
+    return pos / reader.data.lengthInBytes;
+  }
+
+  int? getNode({bool skip = false}) {
+    if (skip) {
+      int type = getUint8();
+      // print('type (skip) $type');
+      return type;
+    }
+
+    int char = getUint8();
+    // print('char $char');
+    switch (char) {
+      case _OtbmSpecialCharacter.start:
+        int type = getUint8();
+        // print('type $type');
+        return type;
+      case _OtbmSpecialCharacter.end:
+        return char;
+      default:
+        return null;
+    }
+  }
+
+  void getAttribute(int attribute) {
     switch (attribute) {
       case _OtbmAttribute.description:
         break;
@@ -179,31 +261,31 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
       case _OtbmAttribute.tileFlags:
         break;
       case _OtbmAttribute.actionId:
-        int actionId = buffer.getUint16(endian: Endian.little);
+        int actionId = getUint16();
         break;
       case _OtbmAttribute.uniqueId:
-        int uniqueId = buffer.getUint16(endian: Endian.little);
+        int uniqueId = getUint16();
         break;
       case _OtbmAttribute.text:
-        String text = readString(buffer);
+        String text = getString();
         break;
       case _OtbmAttribute.desc:
-        String desc = readString(buffer);
+        String desc = getString();
         break;
       case _OtbmAttribute.destination:
-        int x = buffer.getUint16(endian: Endian.little);
-        int y = buffer.getUint16(endian: Endian.little);
-        int z = buffer.getUint8();
+        int x = getUint16();
+        int y = getUint16();
+        int z = getUint8();
         break;
       case _OtbmAttribute.item:
         break;
       case _OtbmAttribute.depotId:
-        int depotId = buffer.getUint16(endian: Endian.little);
+        int depotId = getUint16();
         break;
       case _OtbmAttribute.extSpawnFile:
         break;
       case _OtbmAttribute.runeCharges:
-        int subtype = buffer.getUint8();
+        int subtype = getUint8();
         break;
       case _OtbmAttribute.extHouseFile:
         break;
@@ -212,10 +294,10 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
       case _OtbmAttribute.extHouseFile:
         break;
       case _OtbmAttribute.houseDoorId:
-        int houseDoorId = buffer.getUint8();
+        int houseDoorId = getUint8();
         break;
       case _OtbmAttribute.count:
-        int subtype = buffer.getUint8();
+        int subtype = getUint8();
         break;
       case _OtbmAttribute.duration:
         break;
@@ -230,257 +312,333 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
       case _OtbmAttribute.sleepStart:
         break;
       case _OtbmAttribute.charges:
-        int charges = buffer.getUint16(endian: Endian.little);
+        int charges = getUint16();
         break;
       case _OtbmAttribute.map:
         break;
     }
   }
 
-  String readString(ReadBuffer buffer) {
-    int length = buffer.getUint16(endian: Endian.little);
-    String string = String.fromCharCodes(buffer.getUint8List(length));
-    return string;
-  }
-}
-
-class _OtbmNode {
-  late int _type;
-  ReadBuffer? _buffer;
-  final List<_OtbmNode> _children = List.empty(growable: true);
-
-  _OtbmNode(Uint8List node) {
-    // print('node.length ${node.length}');
-    // print('a2');
-    // print('bytes $bytes');
-    // List<int> buffer = List.empty(growable: true);
-    // int skip = 0;
-    // bool type = false;
-    // bool escape = false;
-
-    _type = node[1];
-    node = node.sublist(2, node.length - 1);
-    while (node.isNotEmpty) {
-      // print('1 node.length ${node.lengthInBytes}');
-      // print('node first 4 ${node.sublist(0, 4)}');
-      int nextNodeStart = getNextPositionOf(node, _OtbmSpecialCharacter.start);
-      // print('nextNodeStart $nextNodeStart');
-      if (nextNodeStart >= 0) {
-        // print('2');
-        _setBuffer(escape(node.sublist(0, nextNodeStart)));
-        int nextNodeEnd = getNodeEnd(node);
-        // print('nextNodeEnd $nextNodeEnd');
-        _children.add(_OtbmNode(node.sublist(
-          nextNodeStart,
-          nextNodeEnd + 1,
-        )));
-        node = node.sublist(nextNodeEnd + 1);
-      } else {
-        // print('3');
-        if (_buffer == null) {
-          _setBuffer(escape(node));
-          node = Uint8List(0);
-        }
-        // print('break');
-        // break;
-      }
-      // print('not broken');
+  int getUint8() {
+    int uint8 = reader.getUint8();
+    pos++;
+    // print('uint8 $uint8');
+    if (uint8 == _OtbmSpecialCharacter.escape) {
+      uint8 = reader.getUint8();
+      pos++;
     }
-
-    // int endPos = getNextPositionOf(bytes, _OtbmSpecialCharacter.end);
-
-    // if (endPos == 0) {
-    //   return;
-    // }
-
-    // int startPos =
-    //     getNextPositionOf(bytes, _OtbmSpecialCharacter.start, start: 1);
-
-    // print('startPos $startPos');
-    // print('endPos $endPos');
-
-    // print('first 50 bytes ${bytes.sublist(0, 50)}');
-
-    // if (startPos + endPos >= 0) {
-    //   if (startPos >= 0 && startPos < endPos) {
-    //     print('1');
-
-    //     _type = bytes[1];
-    //     _setBuffer(escape(bytes.sublist(2, startPos)));
-    //     _children.add(_OtbmNode(bytes.sublist(startPos)));
-    //   } else {
-    //     print('2');
-    //     _type = bytes[1];
-    //     _setBuffer(escape(bytes.sublist(2, endPos)));
-    //     _children.add(_OtbmNode(bytes.sublist(endPos + 1)));
-    //   }
-    // }
-
-    // print('3');
-
-    // _type = bytes[1];
-    // _setBuffer(escape(bytes));
-
-    // print('bytes (first 50) ${bytes.toList().sublist(0, 50)}');
-
-    // for (MapEntry entry in bytes.asMap().entries) {
-    //   if (skip > 0) {
-    //     skip--;
-    //     continue;
-    //   }
-
-    //   int pos = entry.key;
-    //   int byte = entry.value;
-    //   // print('pos $pos, byte $byte');
-
-    //   if (type) {
-    //     print('type=$byte');
-    //     _type = byte;
-    //     type = false;
-    //     continue;
-    //   }
-    //   if (escape) {
-    //     print('escape=true');
-    //     buffer.add(byte);
-    //     escape = false;
-    //     continue;
-    //   }
-
-    //   switch (byte) {
-    //     case _OtbmSpecialCharacter.start:
-    //       print('byte=start');
-    //       if (buffer.isEmpty) {
-    //         // print('buffer empty');
-    //         type = true;
-    //       } else {
-    //         // print('else');
-    //         Uint8List bufferBytes = Uint8List.fromList(bytes.sublist(pos));
-    //         _OtbmNode child = _OtbmNode(bufferBytes);
-    //         _children.add(child);
-    //         // print('child.escaped ${child.escaped}');
-    //         skip = c child.buffer.data.lengthInBytes + 2;
-    //         buffer.clear();
-    //         buffer.add(byte);
-    //         print('skip $skip');
-    //       }
-    //       break;
-    //     case _OtbmSpecialCharacter.escape:
-    //       escape = true;
-    //       break;
-    //     case _OtbmSpecialCharacter.end:
-    //       _setBuffer(buffer);
-    //       print('--- returned, type $_type');
-    //       return;
-    //     default:
-    //       buffer.add(byte);
-    //   }
-    // }
-
-    // if (_buffer == null) {
-    //   _setBuffer(buffer);
-    // }
-
-    // print('--- ended, type $_type');
-  }
-
-  int getNextPositionOf(Uint8List bytes, int byte, {int start = 0}) {
-    int pos;
-    while (true) {
-      // print('4');
-      pos = bytes.indexWhere((b) => b == byte, start);
-      // print('pos $pos');
-
-      if (pos < 1 || bytes[pos - 1] != _OtbmSpecialCharacter.escape) {
-        break;
-      }
-
-      start = pos + 1;
-    }
-    return pos;
-  }
-
-  int getNodeEnd(Uint8List bytes) {
-    int start = 0;
-    int pos = 0;
-    int starts = 0;
-    int ends = 0;
-
-    while (ends == 0 || ends < starts) {
-      // print('starts $starts, ends $ends, pos $pos, start $start');
-      pos = bytes.indexWhere(
-          (byte) => [_OtbmSpecialCharacter.start, _OtbmSpecialCharacter.end]
-              .contains(byte),
-          start);
-      start = pos + 1;
-
-      if (pos >= 1 && bytes[pos - 1] == _OtbmSpecialCharacter.escape) {
-        continue;
-      }
-
-      int byte = bytes[pos];
-      switch (byte) {
-        case _OtbmSpecialCharacter.start:
-          starts++;
-          break;
-        case _OtbmSpecialCharacter.end:
-          ends++;
-          break;
-      }
-    }
-
-    return pos;
-  }
-
-  List<int> escape(List<int> bytes) {
-    List<int> escaped = List.from(bytes, growable: true);
-    // TODO: fix this, handle case where escape char escapes escape char
-    escaped.removeWhere((byte) => byte == _OtbmSpecialCharacter.escape);
-    return escaped;
-  }
-
-  void addChild(Uint8List bytes) {
-    _children.add(_OtbmNode(bytes));
-  }
-
-  int get type {
-    return _type;
-  }
-
-  ReadBuffer get buffer {
-    return _buffer!;
-  }
-
-  // int get escaped {
-  //   return _escaped;
-  // }
-
-  List<_OtbmNode> get children {
-    return _children;
+    return uint8;
   }
 
   int getUint16() {
-    return _buffer!.getUint16(endian: Endian.little);
+    int first = getUint8();
+    int second = getUint8();
+    return (second << 8) + first;
   }
 
   int getUint32() {
-    return _buffer!.getUint32(endian: Endian.little);
+    int first = getUint8();
+    int second = getUint8();
+    int third = getUint8();
+    int fourth = getUint8();
+    return (fourth << 24) + (third << 16) + (second << 8) + first;
   }
 
-  int getUint8() {
-    return _buffer!.getUint8();
+  String getString() {
+    int length = getUint16();
+    List<int> chars = List.empty(growable: true);
+    for (int i = 0; i < length; i++) {
+      chars.add(getUint8());
+    }
+    String string = String.fromCharCodes(chars);
+    return string;
   }
 
-  Uint8List getUint8List(int length) {
-    return _buffer!.getUint8List(length);
-  }
+  Item? getItem(int byte, Position position, int version, List<Item> items) {
+    if (byte == _OtbmSpecialCharacter.start) {
+      if (getUint8() == _OtbmNodeType.item) {
+        // print('item node');
+        int itemId = getUint16();
+        // print('itemId $itemId');
+        int? subtype;
 
-  bool get hasRemaining => _buffer?.hasRemaining ?? false;
+        List<Item> children = List.empty(growable: true);
 
-  void _setBuffer(List<int> buffer) {
-    Uint8List bufferBytes = Uint8List.fromList(buffer);
-    _buffer = ReadBuffer(ByteData.view(bufferBytes.buffer));
+        int byte2 = getUint8();
+
+        while (byte2 != _OtbmSpecialCharacter.end) {
+          switch (byte2) {
+            case _OtbmSpecialCharacter.start:
+              Item? child = getItem(byte2, position, version, items);
+              if (child != null) {
+                children.add(child);
+              }
+              break;
+            case _OtbmAttribute.item:
+              itemId = getUint16();
+              if (version == 1 &&
+                  (items[itemId].stackable ||
+                      items[itemId].splash ||
+                      items[itemId].fluidContainer)) {
+                subtype = getUint8();
+              }
+              break;
+            default:
+              getAttribute(byte2);
+          }
+
+          byte2 = getUint8();
+        }
+
+        if (itemId != null) {
+          // print(
+          //     'item $itemId subtype $subtype position ${position.x} ${position.y} ${position.z}');
+          return Item(id: itemId, name: itemId.toString(), children: children);
+        }
+      }
+    }
+
+    return null;
   }
 }
+
+// class _OtbmNode {
+//   late int _type;
+//   ReadBuffer? _buffer;
+//   final List<_OtbmNode> _children = List.empty(growable: true);
+
+//   _OtbmNode(Uint8List node) {
+//     // print('node.length ${node.length}');
+//     // print('a2');
+//     // print('bytes $bytes');
+//     // List<int> buffer = List.empty(growable: true);
+//     // int skip = 0;
+//     // bool type = false;
+//     // bool escape = false;
+
+//     _type = node[1];
+//     node = node.sublist(2, node.length - 1);
+//     while (node.isNotEmpty) {
+//       // print('1 node.length ${node.lengthInBytes}');
+//       // print('node first 4 ${node.sublist(0, 4)}');
+//       int nextNodeStart = getNextPositionOf(node, _OtbmSpecialCharacter.start);
+//       // print('nextNodeStart $nextNodeStart');
+//       if (nextNodeStart >= 0) {
+//         // print('2');
+//         _setBuffer(escape(node.sublist(0, nextNodeStart)));
+//         int nextNodeEnd = getNodeEnd(node);
+//         // print('nextNodeEnd $nextNodeEnd');
+//         _children.add(_OtbmNode(node.sublist(
+//           nextNodeStart,
+//           nextNodeEnd + 1,
+//         )));
+//         node = node.sublist(nextNodeEnd + 1);
+//       } else {
+//         // print('3');
+//         if (_buffer == null) {
+//           _setBuffer(escape(node));
+//           node = Uint8List(0);
+//         }
+//         // print('break');
+//         // break;
+//       }
+//       // print('not broken');
+//     }
+
+//     // int endPos = getNextPositionOf(bytes, _OtbmSpecialCharacter.end);
+
+//     // if (endPos == 0) {
+//     //   return;
+//     // }
+
+//     // int startPos =
+//     //     getNextPositionOf(bytes, _OtbmSpecialCharacter.start, start: 1);
+
+//     // print('startPos $startPos');
+//     // print('endPos $endPos');
+
+//     // print('first 50 bytes ${bytes.sublist(0, 50)}');
+
+//     // if (startPos + endPos >= 0) {
+//     //   if (startPos >= 0 && startPos < endPos) {
+//     //     print('1');
+
+//     //     _type = bytes[1];
+//     //     _setBuffer(escape(bytes.sublist(2, startPos)));
+//     //     _children.add(_OtbmNode(bytes.sublist(startPos)));
+//     //   } else {
+//     //     print('2');
+//     //     _type = bytes[1];
+//     //     _setBuffer(escape(bytes.sublist(2, endPos)));
+//     //     _children.add(_OtbmNode(bytes.sublist(endPos + 1)));
+//     //   }
+//     // }
+
+//     // print('3');
+
+//     // _type = bytes[1];
+//     // _setBuffer(escape(bytes));
+
+//     // print('bytes (first 50) ${bytes.toList().sublist(0, 50)}');
+
+//     // for (MapEntry entry in bytes.asMap().entries) {
+//     //   if (skip > 0) {
+//     //     skip--;
+//     //     continue;
+//     //   }
+
+//     //   int pos = entry.key;
+//     //   int byte = entry.value;
+//     //   // print('pos $pos, byte $byte');
+
+//     //   if (type) {
+//     //     print('type=$byte');
+//     //     _type = byte;
+//     //     type = false;
+//     //     continue;
+//     //   }
+//     //   if (escape) {
+//     //     print('escape=true');
+//     //     buffer.add(byte);
+//     //     escape = false;
+//     //     continue;
+//     //   }
+
+//     //   switch (byte) {
+//     //     case _OtbmSpecialCharacter.start:
+//     //       print('byte=start');
+//     //       if (buffer.isEmpty) {
+//     //         // print('buffer empty');
+//     //         type = true;
+//     //       } else {
+//     //         // print('else');
+//     //         Uint8List bufferBytes = Uint8List.fromList(bytes.sublist(pos));
+//     //         _OtbmNode child = _OtbmNode(bufferBytes);
+//     //         _children.add(child);
+//     //         // print('child.escaped ${child.escaped}');
+//     //         skip = c child.buffer.data.lengthInBytes + 2;
+//     //         buffer.clear();
+//     //         buffer.add(byte);
+//     //         print('skip $skip');
+//     //       }
+//     //       break;
+//     //     case _OtbmSpecialCharacter.escape:
+//     //       escape = true;
+//     //       break;
+//     //     case _OtbmSpecialCharacter.end:
+//     //       _setBuffer(buffer);
+//     //       print('--- returned, type $_type');
+//     //       return;
+//     //     default:
+//     //       buffer.add(byte);
+//     //   }
+//     // }
+
+//     // if (_buffer == null) {
+//     //   _setBuffer(buffer);
+//     // }
+
+//     // print('--- ended, type $_type');
+//   }
+
+//   int getNextPositionOf(Uint8List bytes, int byte, {int start = 0}) {
+//     int pos;
+//     while (true) {
+//       // print('4');
+//       pos = bytes.indexWhere((b) => b == byte, start);
+//       // print('pos $pos');
+
+//       if (pos < 1 || bytes[pos - 1] != _OtbmSpecialCharacter.escape) {
+//         break;
+//       }
+
+//       start = pos + 1;
+//     }
+//     return pos;
+//   }
+
+//   int getNodeEnd(Uint8List bytes) {
+//     int start = 0;
+//     int pos = 0;
+//     int starts = 0;
+//     int ends = 0;
+
+//     while (ends == 0 || ends < starts) {
+//       // print('starts $starts, ends $ends, pos $pos, start $start');
+//       pos = bytes.indexWhere(
+//           (byte) => [_OtbmSpecialCharacter.start, _OtbmSpecialCharacter.end]
+//               .contains(byte),
+//           start);
+//       start = pos + 1;
+
+//       if (pos >= 1 && bytes[pos - 1] == _OtbmSpecialCharacter.escape) {
+//         continue;
+//       }
+
+//       int byte = bytes[pos];
+//       switch (byte) {
+//         case _OtbmSpecialCharacter.start:
+//           starts++;
+//           break;
+//         case _OtbmSpecialCharacter.end:
+//           ends++;
+//           break;
+//       }
+//     }
+
+//     return pos;
+//   }
+
+//   List<int> escape(List<int> bytes) {
+//     List<int> escaped = List.from(bytes, growable: true);
+//     // TODO: fix this, handle case where escape char escapes escape char
+//     escaped.removeWhere((byte) => byte == _OtbmSpecialCharacter.escape);
+//     return escaped;
+//   }
+
+//   void addChild(Uint8List bytes) {
+//     _children.add(_OtbmNode(bytes));
+//   }
+
+//   int get type {
+//     return _type;
+//   }
+
+//   ReadBuffer get buffer {
+//     return _buffer!;
+//   }
+
+//   // int get escaped {
+//   //   return _escaped;
+//   // }
+
+//   List<_OtbmNode> get children {
+//     return _children;
+//   }
+
+//   int getUint16() {
+//     return _buffer!.getUint16(endian: Endian.little);
+//   }
+
+//   int getUint32() {
+//     return _buffer!.getUint32(endian: Endian.little);
+//   }
+
+//   int getUint8() {
+//     return _buffer!.getUint8();
+//   }
+
+//   Uint8List getUint8List(int length) {
+//     return _buffer!.getUint8List(length);
+//   }
+
+//   bool get hasRemaining => _buffer?.hasRemaining ?? false;
+
+//   void _setBuffer(List<int> buffer) {
+//     Uint8List bufferBytes = Uint8List.fromList(buffer);
+//     _buffer = ReadBuffer(ByteData.view(bufferBytes.buffer));
+//   }
+// }
 
 abstract class _OtbmSpecialCharacter {
   static const start = 0xFE;

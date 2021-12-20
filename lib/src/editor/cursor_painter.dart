@@ -11,22 +11,20 @@ import '../models/texture.dart' as t;
 
 const TILE_SIZE = 32;
 
-class MapPainter extends CustomPainter {
+class CursorPainter extends CustomPainter {
   final AreaMap map;
   final List<Item> items;
-  final Position position;
   // final Offset offset;
   // final double zoom;
   final Offset? mouse;
   final Item? selectedItem;
-  final bool repaint = true;
+  bool repaint = true;
 
-  MapPainter({
+  CursorPainter({
     required this.map,
     required this.items,
-    required this.position,
-    this.mouse,
-    this.selectedItem,
+    required this.mouse,
+    required this.selectedItem,
   });
 
   // double getTileSize() {
@@ -102,54 +100,29 @@ class MapPainter extends CustomPainter {
   //   return tiles;
   // }
 
-  paintItem(Canvas canvas, Offset offset, Item item, {double opacity = 1.0}) {
+  paintItem(Canvas canvas, Offset offset, Item item) {
     // double tileSize = getTileSize();
     t.Texture texture = items.firstWhere((i) => i.id == item.id).textures[0];
     paintImage(
       canvas: canvas,
-      rect: offset.translate(-(texture.width.toDouble() - TILE_SIZE),
-              -(texture.height.toDouble() - TILE_SIZE)) &
-          Size(texture.width.toDouble(), texture.height.toDouble()),
-      // scale: 10, // texture.width.toDouble() / TILE_SIZE,
+      rect: offset & Size.square(TILE_SIZE.toDouble()),
       image: texture.image!, // item.textures[0].image!,
-      // fit: BoxFit.none,
-      // filterQuality: FilterQuality.high,
-      opacity: opacity,
+      fit: BoxFit.fill,
     );
-  }
-
-  paintTiles(Canvas canvas, Size size) {
-    // List<Tile> visibleTiles = map.tiles.values.toList();
-    // print('visibleTiles.length ${visibleTiles.length}');
-
-    map.tiles.values.forEach((tile) {
-      Offset tileOffset = positionToTileOffset(tile.position);
-      // print(
-      // 'tile ${tile.position.x} ${tile.position.y} ${tile.position.z} items ${tile.items.length}');
-      tile.items.forEach((item) {
-        print(
-            'position ${tile.position.x} ${tile.position.y} ${tile.position.z} item ${item.id}');
-        paintItem(canvas, tileOffset, item);
-      });
-    });
   }
 
   @override
   void paint(Canvas canvas, Size size) async {
-    print('MapPainter.paint');
-    paintTiles(canvas, size);
+    // print('CursorPainter.paint');
     if (mouse != null && selectedItem != null) {
       Offset mouseTileOffset = offsetToTileOffset(mouse!);
-      paintItem(canvas, mouseTileOffset, selectedItem!, opacity: 0.5);
+      paintItem(canvas, mouseTileOffset, selectedItem!);
     }
   }
 
   @override
-  bool shouldRepaint(MapPainter old) {
-    bool shouldRepaint = true;
-    //  old.mouse != mouse || old.map.tiles.length != map.tiles.length; // true;
-    print('MapPainter.shouldRepaint $shouldRepaint');
-    return shouldRepaint;
-    // return false; // this.repaint;
+  bool shouldRepaint(CursorPainter old) {
+    // print('CursorPainter.shouldRepaint');
+    return true; // this.repaint;
   }
 }
