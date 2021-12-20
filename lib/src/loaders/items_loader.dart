@@ -12,6 +12,8 @@ import 'dart:ui' as ui;
 import 'dart:async';
 import 'package:image/image.dart' as img;
 import '../models/texture.dart' as t;
+import 'dart:math';
+import '../models/atlas.dart';
 
 const SPRITE_SIZE = 32;
 const SPRITE_BYTES = SPRITE_SIZE * SPRITE_SIZE * 4;
@@ -231,6 +233,62 @@ class ItemsLoader {
         targetWidth: width, targetHeight: height);
     ui.FrameInfo fi = await codec.getNextFrame();
     return fi.image;
+  }
+
+  static Future<Atlas> getAtlas(List<Item> items) async {
+    List<Item> items2 = items.take(10).toList();
+    // List<Item> items2 = items.toList();
+
+    int atlasWidth = 0;
+    int atlasHeight = 0;
+
+    items2.forEach((item) {
+      atlasWidth += item.textures[0].width;
+      atlasHeight = max(atlasHeight, item.textures[0].height);
+    });
+
+    Map<int, ui.Rect> rects = Map();
+
+    print('atlasWidth $atlasWidth atlasHeight $atlasHeight');
+
+    img.Image atlasImg = img.Image(atlasWidth, atlasHeight);
+
+    int atlasPos = 0;
+
+    items2.asMap().forEach((index, item) {
+      print('atlasPos $atlasPos');
+
+      t.Texture texture = item.textures[0];
+      // ByteData? byteData = await texture.bitmap
+
+      img.copyInto(atlasImg,
+          img.Image.fromBytes(texture.width, texture.height, texture.bytes),
+          // Bitmap.fromHeadful(texture.width, texture.height, texture.bitmap)
+          //     .content),
+          dstX: atlasPos,
+          dstY: atlasHeight - texture.height);
+      rects[item.id] = Offset(
+              atlasPos.toDouble(), (atlasHeight - texture.height).toDouble()) &
+          Size(texture.width.toDouble(), texture.height.toDouble());
+      atlasPos += texture.width;
+    });
+
+    Bitmap atlasBitmap =
+        Bitmap.fromHeadless(atlasWidth, atlasHeight, atlasImg.getBytes());
+
+    print('atlasBitmap $atlasBitmap');
+
+    ui.Image atlasUiImage = await ItemsLoader.getUiImage(
+        atlasBitmap.buildHeaded(),
+        width: atlasWidth,
+        height: atlasHeight);
+
+    Atlas atlas = Atlas(atlas: atlasUiImage, rects: rects);
+
+    // print(
+    //     'atlasUiImage width ${atlasUiImage.width} height ${atlasUiImage.height} bytes ${atlas.getBytes()}');
+
+    return atlas;
   }
 
   // static Future<Item> getItem(int id, Sprite sprite) async {
@@ -487,6 +545,7 @@ class ItemsLoader {
               textures.add(t.Texture(
                 width: texture.width,
                 height: texture.height,
+                bytes: texture.getBytes(),
                 bitmap: headed,
               ));
             }

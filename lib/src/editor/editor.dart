@@ -16,6 +16,7 @@ import '../models/tile.dart';
 import '../models/area_map.dart';
 import 'dart:ui' as ui;
 import '../models/texture.dart' as t;
+import '../models/atlas.dart';
 
 const TILE_SIZE = 32;
 
@@ -58,6 +59,7 @@ class Editor extends StatefulWidget {
 class EditorState extends State<Editor> {
   late AreaMap map;
   late List<Item> items = [];
+  late Atlas atlas;
   int? selectedItemIndex;
   // late Future<List<Item>> itemsLoaderFuture;
   late ItemsLoaderProgress itemsProgress = ItemsLoaderProgress();
@@ -79,8 +81,9 @@ class EditorState extends State<Editor> {
 
   Future<EditorData> loadData() async {
     List<Item> items = await loadItems();
+    Atlas atlas = await ItemsLoader.getAtlas(items);
     AreaMap map = await loadMap();
-    return EditorData(items: items, map: map);
+    return EditorData(items: items, atlas: atlas, map: map);
   }
 
   Future<List<Item>> loadItems() async {
@@ -157,7 +160,9 @@ class EditorState extends State<Editor> {
             }
             if (snapshot.hasData) {
               items = snapshot.data?.items as List<Item>;
+              atlas = snapshot.data?.atlas as Atlas;
               map = snapshot.data?.map as AreaMap;
+
               // items = snapshot.data!;
               return Container(
                   child: Row(children: [
@@ -275,6 +280,7 @@ class EditorState extends State<Editor> {
                     child: Map(
                   map: map,
                   items: items,
+                  atlas: atlas,
                   width: map.width, // widget.width,
                   height: map.height, // widget.height,
                   selectedItem: selectedItemIndex != null
@@ -333,7 +339,8 @@ class EditorState extends State<Editor> {
 
 class EditorData {
   List<Item> items;
+  Atlas atlas;
   AreaMap map;
 
-  EditorData({required this.items, required this.map});
+  EditorData({required this.items, required this.atlas, required this.map});
 }

@@ -194,7 +194,7 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
       }
     }
 
-    map.getVisibleTilesForPosition(Position(32369, 32241, 7)); // size));
+    // map.getVisibleTilesForPosition(Position(32369, 32241, 7)); // size));
 
     print(
         'deserialized otbm map ${map.toString()} width ${map.width} height ${map.height} tiles ${map.tiles.length}');

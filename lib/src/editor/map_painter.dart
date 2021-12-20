@@ -1,4 +1,8 @@
+import 'dart:math';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/area_map.dart';
 import './map.dart';
 import '../models/item.dart';
@@ -8,13 +12,19 @@ import 'dart:ui' as ui;
 import 'package:bitmap/bitmap.dart';
 import '../loaders/items_loader.dart';
 import '../models/texture.dart' as t;
+import 'package:image/image.dart' as img;
+import 'package:bitmap/bitmap.dart';
+import '../models/atlas.dart';
 
 const TILE_SIZE = 32;
 
 class MapPainter extends CustomPainter {
-  final AreaMap map;
+  // final AreaMap map;
+  final List<Tile> tiles;
   final List<Item> items;
-  final Position position;
+  final Atlas atlas;
+  Rect visible;
+  // final Position position;
   // final Offset offset;
   // final double zoom;
   final Offset? mouse;
@@ -22,9 +32,12 @@ class MapPainter extends CustomPainter {
   final bool repaint = true;
 
   MapPainter({
-    required this.map,
+    // required this.map,
+    required this.tiles,
     required this.items,
-    required this.position,
+    required this.atlas,
+    required this.visible,
+    // required this.position,
     this.mouse,
     this.selectedItem,
   });
@@ -53,6 +66,15 @@ class MapPainter extends CustomPainter {
     double dx = (position.x * TILE_SIZE).toDouble(); // - offset.dx;
     double dy = (position.y * TILE_SIZE).toDouble(); // -offset.dx;
     return Offset(dx, dy);
+  }
+
+  Rect tileRectToPositionRect(Rect tileRect) {
+    // print('tileRect $tileRect');
+    return Rect.fromLTRB(
+        (tileRect.left / TILE_SIZE).floor().toDouble(),
+        (tileRect.top / TILE_SIZE).floor().toDouble(),
+        (tileRect.right / TILE_SIZE).ceil().toDouble(),
+        (tileRect.bottom / TILE_SIZE).ceil().toDouble());
   }
 
   // List<Tile> getVisibleTiles(Size size) {
@@ -118,17 +140,69 @@ class MapPainter extends CustomPainter {
     );
   }
 
-  paintTiles(Canvas canvas, Size size) {
+  paintTiles(Canvas canvas, Size size) async {
     // List<Tile> visibleTiles = map.tiles.values.toList();
     // print('visibleTiles.length ${visibleTiles.length}');
 
-    map.tiles.values.forEach((tile) {
+    // paintImage(
+    //   canvas: canvas,
+    //   rect: positionToTileOffset(Position(1040, 1040, 7)) &
+    //       Size(atlas.atlas.width.toDouble(), atlas.atlas.height.toDouble()),
+    //   // scale: 10, // texture.width.toDouble() / TILE_SIZE,
+    //   image: atlas.atlas, // item.textures[0].image!,
+    //   // fit: BoxFit.none,
+    //   // filterQuality: FilterQuality.high,
+    //   opacity: 1,
+    // );
+
+    // List<RSTransform> transforms = List.empty(growable: true);
+    // List<Rect> rects = List.empty(growable: true);
+
+    // tiles.where((tile) => tile.position.z == 7).forEach((tile) {
+    //   Offset tileOffset = positionToTileOffset(tile.position);
+
+    //   tile.items.forEach((item) {
+    //     // ui.Rect? rect = atlas.rects[item.id];
+    //     // print('atlas rect for item ${item.id} $rect');
+    //     // if (rect != null) {
+    //     transforms.add(RSTransform.fromComponents(
+    //         rotation: 0,
+    //         scale: 1,
+    //         anchorX: 0,
+    //         anchorY: 0,
+    //         translateX: tileOffset.dx,
+    //         translateY: tileOffset.dy));
+    //     rects.add(Offset(0, 0) & Size(32, 32)); //rect);
+    //     // }
+    //   });
+    // });
+
+    // canvas.drawAtlas(
+    //   atlas.atlas,
+    //   transforms,
+    //   rects,
+    //   [],
+    //   BlendMode.src,
+    //   null,
+    //   Paint(),
+    // );
+
+    Rect visiblePositionRect = tileRectToPositionRect(visible);
+
+    // print('visiblePositionRect $visiblePositionRect');
+
+    tiles
+        .where((tile) =>
+            visiblePositionRect.contains(Offset(
+                tile.position.x.toDouble(), tile.position.y.toDouble())) &&
+            tile.position.z == 7)
+        .forEach((tile) {
       Offset tileOffset = positionToTileOffset(tile.position);
       // print(
       // 'tile ${tile.position.x} ${tile.position.y} ${tile.position.z} items ${tile.items.length}');
       tile.items.forEach((item) {
-        print(
-            'position ${tile.position.x} ${tile.position.y} ${tile.position.z} item ${item.id}');
+        // print(
+        //     'position ${tile.position.x} ${tile.position.y} ${tile.position.z} item ${item.id}');
         paintItem(canvas, tileOffset, item);
       });
     });
@@ -136,19 +210,22 @@ class MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) async {
-    print('MapPainter.paint');
-    paintTiles(canvas, size);
+    // print('MapPainter.paint');
+    await paintTiles(canvas, size);
     if (mouse != null && selectedItem != null) {
       Offset mouseTileOffset = offsetToTileOffset(mouse!);
       paintItem(canvas, mouseTileOffset, selectedItem!, opacity: 0.5);
     }
+    // print('MapPainter.painted');
   }
 
   @override
   bool shouldRepaint(MapPainter old) {
-    bool shouldRepaint = true;
+    // print('old mouse dx ${old.mouse?.dx} new mouse dx ${mouse?.dx}');
+
+    bool shouldRepaint = false;
     //  old.mouse != mouse || old.map.tiles.length != map.tiles.length; // true;
-    print('MapPainter.shouldRepaint $shouldRepaint');
+    // print('MapPainter.shouldRepaint $shouldRepaint');
     return shouldRepaint;
     // return false; // this.repaint;
   }

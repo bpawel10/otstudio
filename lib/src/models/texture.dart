@@ -4,12 +4,14 @@ import 'dart:ui' as ui;
 class Texture {
   final int width;
   final int height;
+  final Uint8List bytes;
   final Uint8List bitmap;
   ui.Image? image;
 
   Texture(
       {required this.width,
       required this.height,
+      required this.bytes,
       required this.bitmap,
       this.image});
 }

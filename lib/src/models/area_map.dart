@@ -1,4 +1,5 @@
 import 'package:collection/collection.dart';
+import 'package:flutter/rendering.dart';
 import './item.dart';
 import './position.dart';
 import './tile.dart';
@@ -82,8 +83,17 @@ class AreaMap {
 
     tiles.removeWhere((key, value) =>
         key.z != position.z ||
-        (key.x - position.x).abs() > 10 ||
-        (key.y - position.y).abs() > 10);
+        (key.x - position.x).abs() > 300 ||
+        (key.y - position.y).abs() > 300);
+  }
+
+  List<Tile> getTilesInRect(Rect rect) {
+    return tiles.values
+        .where((Tile tile) =>
+            rect.contains(Offset(
+                tile.position.x.toDouble(), tile.position.y.toDouble())) &&
+            tile.position.z == 7)
+        .toList();
   }
 
   // List<Tile> getTiles() {

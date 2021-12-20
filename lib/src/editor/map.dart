@@ -4,17 +4,24 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:otstudio/src/editor/cursor_painter.dart';
+import 'package:otstudio/src/editor/map_grid.dart';
+import 'package:otstudio/src/loaders/items_loader.dart';
 import '../models/area_map.dart';
 import '../models/item.dart';
 import '../models/position.dart';
 import '../models/tile.dart';
 import './map_painter.dart';
+import 'dart:ui' as ui;
+import 'package:image/image.dart' as img;
+import '../models/texture.dart' as t;
+import '../models/atlas.dart';
 
 const TILE_SIZE = 32;
 
 class Map extends StatefulWidget {
   final AreaMap? map;
   final List<Item> items;
+  final Atlas atlas;
   final int width;
   final int height;
   final Item? selectedItem;
@@ -22,6 +29,7 @@ class Map extends StatefulWidget {
   Map(
       {this.map,
       required this.items,
+      required this.atlas,
       required this.width,
       required this.height,
       this.selectedItem});
@@ -33,6 +41,9 @@ class Map extends StatefulWidget {
 class MapState extends State<Map> {
   late AreaMap map;
   late Offset offset;
+  Offset interactionStart = Offset.zero;
+  Offset interactionDelta = Offset.zero;
+
   late Size size;
   // double zoom = 1;
   // double scale = 1;
@@ -40,6 +51,9 @@ class MapState extends State<Map> {
   Position? adding;
   bool repaint = false;
   late TransformationController controller;
+
+  Rect visible = Rect.zero;
+  late MapPainter painter;
 
   @override
   initState() {
@@ -57,8 +71,24 @@ class MapState extends State<Map> {
         ?.addPostFrameCallback((_) => setState(() => repaint = false));
     // offset = Offset(size.width / 2, size.height / 2);
     // print('offset $offset');
-    controller = TransformationController(
-        Matrix4.identity()..translate(-offset.dx, -offset.dy));
+    controller = TransformationController(Matrix4.identity()
+      ..translate(
+          //-size.width / 2, -size.height / 2));
+          -offset.dx,
+          -offset.dy));
+
+    painter = MapPainter(
+      tiles: map.tiles.values.toList(),
+      // position: offsetToPosition(offset),
+      items: widget.items,
+      atlas: widget.atlas,
+      visible: visible,
+      // offset: offset,
+      // zoom: zoom,
+      mouse: mouse,
+      selectedItem: widget.selectedItem,
+      // repaint: repaint,
+    );
   }
 
   // double getTileSize() {
@@ -102,56 +132,83 @@ class MapState extends State<Map> {
   @override
   Widget build(BuildContext context) {
     bool repaint = this.repaint;
-    print('repaint $repaint');
+    // print('repaint $repaint');
     return Container(
         color: Colors.black,
         // child: Scrollbar(
-        child: InteractiveViewer(
-            constrained: false,
-            transformationController: controller,
-            minScale: 0.01,
-            maxScale: 10,
-            // onInteractionUpdate: (details) {
-            //   // offset = details.focalPoint;
-            //   // scale = details.scale;
-            //   print(
-            //       'delta ${details.focalPointDelta} offset $offset localOffset ${details.localFocalPoint} scale $scale');
+        child: LayoutBuilder(
+            builder: (BuildContext context, BoxConstraints constraints) {
+          // print('constraints ${constraints}');
+          visible = offset & constraints.biggest;
+          painter.visible = visible;
+          // print('visible $visible');
+          return InteractiveViewer(
+              constrained: false,
+              transformationController: controller,
+              minScale: 0.01,
+              maxScale: 10,
+              onInteractionStart: (details) {
+                // print('interaction start details $details');
+                // setState(() {
+                interactionStart = details.focalPoint;
+                // });
+              },
+              onInteractionUpdate: (details) {
+                // print('interaction update details $details');
+                // print('offset $offset');
 
-            //   // scale = details.scale;
-            //   // offset -= details.focalPointDelta / scale;
-            // },
-            child: GestureDetector(
-                onPanDown: (DragDownDetails details) =>
-                    addItem(details.localPosition),
-                onPanUpdate: (DragUpdateDetails details) =>
-                    addItem(details.localPosition),
-                onPanEnd: (_) => setState(() => adding = null),
-                onPanCancel: () => setState(() => adding = null),
-                child: MouseRegion(
-                    onEnter: (PointerEnterEvent event) =>
-                        setState(() => mouse = event.localPosition),
-                    onHover: (PointerHoverEvent event) =>
-                        setState(() => mouse = event.localPosition),
-                    onExit: (_) => setState(() => mouse = null),
-                    child: RepaintBoundary(
-                        child: CustomPaint(
-                      size: size,
-                      painter: MapPainter(
-                        map: map,
-                        position: offsetToPosition(offset),
-                        items: widget.items,
-                        // offset: offset,
-                        // zoom: zoom,
-                        mouse: mouse,
-                        selectedItem: widget.selectedItem,
-                        // repaint: repaint,
-                      ),
-                      // foregroundPainter: CursorPainter(
-                      //     map: map,
-                      //     items: widget.items,
-                      //     mouse: mouse,
-                      //     selectedItem: widget.selectedItem),
-                    ))))));
+                interactionDelta = details.focalPoint;
+
+                // setState(() {
+                //   interactionDelta = details.focalPoint - interactionStart;
+                //   visible = (offset - interactionDelta) & constraints.biggest;
+                //   painter.visible = visible;
+                // });
+
+                // print('offset delta $interactionDelta');
+
+                // offset = details.focalPoint;
+                // scale = details.scale;
+                // print(
+                //     'delta ${details.focalPointDelta} offset $offset localOffset ${details.localFocalPoint} scale $scale');
+
+                // scale = details.scale;
+                // offset -= details.focalPointDelta / scale;
+              },
+              onInteractionEnd: (details) {
+                // print('interaction end details $details');
+                setState(() {
+                  offset = offset - (interactionDelta - interactionStart);
+                  // print('end offset $offset');
+                });
+              },
+              child: GestureDetector(
+                  onPanDown: (DragDownDetails details) =>
+                      addItem(details.localPosition),
+                  onPanUpdate: (DragUpdateDetails details) =>
+                      addItem(details.localPosition),
+                  onPanEnd: (_) => setState(() => adding = null),
+                  onPanCancel: () => setState(() => adding = null),
+                  child: MouseRegion(
+                      onEnter: (PointerEnterEvent event) =>
+                          setState(() => mouse = event.localPosition),
+                      onHover: (PointerHoverEvent event) =>
+                          setState(() => mouse = event.localPosition),
+                      onExit: (_) => setState(() => mouse = null),
+                      // child: MapGrid(map: map, items: widget.items),
+                      //  child: RepaintBoundary(
+                      child: CustomPaint(
+                        size: size,
+                        painter: painter,
+                        // foregroundPainter: CursorPainter(
+                        //     map: map,
+                        //     items: widget.items,
+                        //     mouse: mouse,
+                        //     selectedItem: widget.selectedItem),
+                        // )
+                      ))));
+        }));
+    // );
   }
 
   // @override
