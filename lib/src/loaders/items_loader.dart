@@ -235,17 +235,27 @@ class ItemsLoader {
     return fi.image;
   }
 
-  static Future<Atlas> getAtlas(List<Item> items) async {
-    List<Item> items2 = items.take(10).toList();
-    // List<Item> items2 = items.toList();
+  static Future<Atlas> getAtlas(Map<int, Item> items) async {
+    // List<Item> items2 = items.values.take(100).toList();
+    List<Item> items2 = items.values.toList();
 
-    int atlasWidth = 0;
-    int atlasHeight = 0;
+    int atlasSize = sqrt(items2.length).ceil();
+
+    int maxWidth = 0;
+    int maxHeight = 0;
 
     items2.forEach((item) {
-      atlasWidth += item.textures[0].width;
-      atlasHeight = max(atlasHeight, item.textures[0].height);
+      maxWidth = max(maxWidth, item.textures[0].width.toInt());
+      maxHeight = max(maxHeight, item.textures[0].height.toInt());
     });
+
+    int atlasWidth = atlasSize * maxWidth;
+    int atlasHeight = atlasSize * maxHeight;
+
+    // items2.forEach((item) {
+    //   atlasWidth += item.textures[0].width.toInt();
+    //   atlasHeight = max(atlasHeight, item.textures[0].height.toInt());
+    // });
 
     Map<int, ui.Rect> rects = Map();
 
@@ -253,35 +263,82 @@ class ItemsLoader {
 
     img.Image atlasImg = img.Image(atlasWidth, atlasHeight);
 
-    int atlasPos = 0;
+    // int atlasPosX = 0;
+    // int atlasPosY = 0;
 
     items2.asMap().forEach((index, item) {
-      print('atlasPos $atlasPos');
+      // print('atlasPos $atlasPos');
 
       t.Texture texture = item.textures[0];
       // ByteData? byteData = await texture.bitmap
 
-      img.copyInto(atlasImg,
-          img.Image.fromBytes(texture.width, texture.height, texture.bytes),
-          // Bitmap.fromHeadful(texture.width, texture.height, texture.bitmap)
-          //     .content),
-          dstX: atlasPos,
-          dstY: atlasHeight - texture.height);
-      rects[item.id] = Offset(
-              atlasPos.toDouble(), (atlasHeight - texture.height).toDouble()) &
+      img.Image textureImage = img.Image.fromBytes(
+          texture.width.toInt(), texture.height.toInt(), texture.bytes);
+
+      // img.Image resized = img.copyResize(textureImage,
+      //     width: textureImage.width,
+      //     height: textureImage.height,
+      //     interpolation: img.Interpolation.linear);
+
+      int offsetX =
+          (index % atlasSize) * maxWidth + (maxWidth - texture.width.toInt());
+      int offsetY = (index / atlasSize).floor() * maxHeight +
+          (maxHeight - texture.height.toInt());
+
+      if (index < 50) {
+        print(
+            'index $index itemId ${item.id} offsetX $offsetX offsetY $offsetY atlasSize $atlasSize');
+      }
+
+      img.copyInto(
+        atlasImg,
+        textureImage,
+        // Bitmap.fromHeadful(texture.width, texture.height, texture.bitmap)
+        //     .content),
+        dstX: offsetX,
+        dstY: offsetY,
+      );
+      rects[item.id] = Offset(offsetX.toDouble(), offsetY.toDouble()) &
           Size(texture.width.toDouble(), texture.height.toDouble());
-      atlasPos += texture.width;
     });
 
-    Bitmap atlasBitmap =
-        Bitmap.fromHeadless(atlasWidth, atlasHeight, atlasImg.getBytes());
+    print('atlasWidth2 $atlasWidth atlasHeight2 $atlasHeight');
 
-    print('atlasBitmap $atlasBitmap');
+    print(
+        'atlasImg.width ${atlasImg.width} atlasImg.height ${atlasImg.height}');
 
-    ui.Image atlasUiImage = await ItemsLoader.getUiImage(
-        atlasBitmap.buildHeaded(),
-        width: atlasWidth,
-        height: atlasHeight);
+    // Bitmap atlasBitmap =
+    //     Bitmap.fromHeadless(atlasWidth, atlasHeight, atlasImg.getBytes());
+
+    // print(
+    //     'atlasBitmap $atlasBitmap width ${atlasBitmap.width} height ${atlasBitmap.height}');
+
+    ui.Codec codec = await ui.instantiateImageCodec(
+        Uint8List.fromList(img.encodePng(atlasImg)),
+        targetWidth: atlasWidth,
+        targetHeight: atlasHeight);
+
+    print('frame count ${codec.frameCount}');
+    print('repetition count ${codec.repetitionCount}');
+
+    ui.FrameInfo frameInfo = await codec.getNextFrame();
+    ui.Image atlasUiImage = frameInfo.image;
+
+    // ui.Image atlasUiImage = await ItemsLoader.getUiImage(
+    //     atlasBitmap.buildHeaded(),
+    //     width: atlasWidth,
+    //     height: atlasHeight);
+
+    print(
+        'atlasUiImage $atlasUiImage width ${atlasUiImage.width} height ${atlasUiImage.height}');
+
+    ByteData? data =
+        await atlasUiImage.toByteData(format: ui.ImageByteFormat.png);
+
+    if (data != null) {
+      await File('/Users/bpawel10/dev/tibia/otstudio/atlas.png').writeAsBytes(
+          data.buffer.asUint8List()); // data.buffer.asUint8List());
+    }
 
     Atlas atlas = Atlas(atlas: atlasUiImage, rects: rects);
 
@@ -419,7 +476,7 @@ class ItemsLoader {
     return otbItems;
   }
 
-  static Future<List<Item>> load(ItemsLoaderPayload payload) async {
+  static Future<Map<int, Item>> load(ItemsLoaderPayload payload) async {
     Map<int, Item> otbItems = await loadOtbItems(payload.otbFilePath);
 
     // String itemsFilePath = payload.itemsFilePath;
@@ -470,12 +527,13 @@ class ItemsLoader {
     int distanceEffectsCount = dat.getUint16(endian: Endian.little);
     print('itemsCount: ' + itemsCount.toString());
 
-    List<Item> items = List.empty(growable: true);
+    Map<int, Item> items = Map();
 
     for (int i = 0; i < itemsCount; i++) {
       bool stackable = false;
       bool splash = false;
       bool fluidContainer = false;
+      Color minimapColor = Colors.black;
 
       int byte = dat.getUint8();
       // print('byte ' + byte.toString());
@@ -486,7 +544,274 @@ class ItemsLoader {
           splash = true;
         } else if (byte == 0x0B) {
           fluidContainer = true;
-        } else if ([0x00, 0x09, 0x0A, 0x1A, 0x1D, 0x1E].contains(byte)) {
+        } else if (byte == 0x1D) {
+          int minimap = dat.getUint16(endian: Endian.little);
+          Map<int, Color> colors = [
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 51),
+            Color.fromARGB(255, 0, 0, 102),
+            Color.fromARGB(255, 0, 0, 153),
+            Color.fromARGB(255, 0, 0, 204),
+            Color.fromARGB(255, 0, 0, 255),
+            Color.fromARGB(255, 0, 51, 0),
+            Color.fromARGB(255, 0, 51, 51),
+            Color.fromARGB(255, 0, 51, 102),
+            Color.fromARGB(255, 0, 51, 153),
+            Color.fromARGB(255, 0, 51, 204),
+            Color.fromARGB(255, 0, 51, 255),
+            Color.fromARGB(255, 0, 102, 0),
+            Color.fromARGB(255, 0, 102, 51),
+            Color.fromARGB(255, 0, 102, 102),
+            Color.fromARGB(255, 0, 102, 153),
+            Color.fromARGB(255, 0, 102, 204),
+            Color.fromARGB(255, 0, 102, 255),
+            Color.fromARGB(255, 0, 153, 0),
+            Color.fromARGB(255, 0, 153, 51),
+            Color.fromARGB(255, 0, 153, 102),
+            Color.fromARGB(255, 0, 153, 153),
+            Color.fromARGB(255, 0, 153, 204),
+            Color.fromARGB(255, 0, 153, 255),
+            Color.fromARGB(255, 0, 204, 0),
+            Color.fromARGB(255, 0, 204, 51),
+            Color.fromARGB(255, 0, 204, 102),
+            Color.fromARGB(255, 0, 204, 153),
+            Color.fromARGB(255, 0, 204, 204),
+            Color.fromARGB(255, 0, 204, 255),
+            Color.fromARGB(255, 0, 255, 0),
+            Color.fromARGB(255, 0, 255, 51),
+            Color.fromARGB(255, 0, 255, 102),
+            Color.fromARGB(255, 0, 255, 153),
+            Color.fromARGB(255, 0, 255, 204),
+            Color.fromARGB(255, 0, 255, 255),
+            Color.fromARGB(255, 51, 0, 0),
+            Color.fromARGB(255, 51, 0, 51),
+            Color.fromARGB(255, 51, 0, 102),
+            Color.fromARGB(255, 51, 0, 153),
+            Color.fromARGB(255, 51, 0, 204),
+            Color.fromARGB(255, 51, 0, 255),
+            Color.fromARGB(255, 51, 51, 0),
+            Color.fromARGB(255, 51, 51, 51),
+            Color.fromARGB(255, 51, 51, 102),
+            Color.fromARGB(255, 51, 51, 153),
+            Color.fromARGB(255, 51, 51, 204),
+            Color.fromARGB(255, 51, 51, 255),
+            Color.fromARGB(255, 51, 102, 0),
+            Color.fromARGB(255, 51, 102, 51),
+            Color.fromARGB(255, 51, 102, 102),
+            Color.fromARGB(255, 51, 102, 153),
+            Color.fromARGB(255, 51, 102, 204),
+            Color.fromARGB(255, 51, 102, 255),
+            Color.fromARGB(255, 51, 153, 0),
+            Color.fromARGB(255, 51, 153, 51),
+            Color.fromARGB(255, 51, 153, 102),
+            Color.fromARGB(255, 51, 153, 153),
+            Color.fromARGB(255, 51, 153, 204),
+            Color.fromARGB(255, 51, 153, 255),
+            Color.fromARGB(255, 51, 204, 0),
+            Color.fromARGB(255, 51, 204, 51),
+            Color.fromARGB(255, 51, 204, 102),
+            Color.fromARGB(255, 51, 204, 153),
+            Color.fromARGB(255, 51, 204, 204),
+            Color.fromARGB(255, 51, 204, 255),
+            Color.fromARGB(255, 51, 255, 0),
+            Color.fromARGB(255, 51, 255, 51),
+            Color.fromARGB(255, 51, 255, 102),
+            Color.fromARGB(255, 51, 255, 153),
+            Color.fromARGB(255, 51, 255, 204),
+            Color.fromARGB(255, 51, 255, 255),
+            Color.fromARGB(255, 102, 0, 0),
+            Color.fromARGB(255, 102, 0, 51),
+            Color.fromARGB(255, 102, 0, 102),
+            Color.fromARGB(255, 102, 0, 153),
+            Color.fromARGB(255, 102, 0, 204),
+            Color.fromARGB(255, 102, 0, 255),
+            Color.fromARGB(255, 102, 51, 0),
+            Color.fromARGB(255, 102, 51, 51),
+            Color.fromARGB(255, 102, 51, 102),
+            Color.fromARGB(255, 102, 51, 153),
+            Color.fromARGB(255, 102, 51, 204),
+            Color.fromARGB(255, 102, 51, 255),
+            Color.fromARGB(255, 102, 102, 0),
+            Color.fromARGB(255, 102, 102, 51),
+            Color.fromARGB(255, 102, 102, 102),
+            Color.fromARGB(255, 102, 102, 153),
+            Color.fromARGB(255, 102, 102, 204),
+            Color.fromARGB(255, 102, 102, 255),
+            Color.fromARGB(255, 102, 153, 0),
+            Color.fromARGB(255, 102, 153, 51),
+            Color.fromARGB(255, 102, 153, 102),
+            Color.fromARGB(255, 102, 153, 153),
+            Color.fromARGB(255, 102, 153, 204),
+            Color.fromARGB(255, 102, 153, 255),
+            Color.fromARGB(255, 102, 204, 0),
+            Color.fromARGB(255, 102, 204, 51),
+            Color.fromARGB(255, 102, 204, 102),
+            Color.fromARGB(255, 102, 204, 153),
+            Color.fromARGB(255, 102, 204, 204),
+            Color.fromARGB(255, 102, 204, 255),
+            Color.fromARGB(255, 102, 255, 0),
+            Color.fromARGB(255, 102, 255, 51),
+            Color.fromARGB(255, 102, 255, 102),
+            Color.fromARGB(255, 102, 255, 153),
+            Color.fromARGB(255, 102, 255, 204),
+            Color.fromARGB(255, 102, 255, 255),
+            Color.fromARGB(255, 153, 0, 0),
+            Color.fromARGB(255, 153, 0, 51),
+            Color.fromARGB(255, 153, 0, 102),
+            Color.fromARGB(255, 153, 0, 153),
+            Color.fromARGB(255, 153, 0, 204),
+            Color.fromARGB(255, 153, 0, 255),
+            Color.fromARGB(255, 153, 51, 0),
+            Color.fromARGB(255, 153, 51, 51),
+            Color.fromARGB(255, 153, 51, 102),
+            Color.fromARGB(255, 153, 51, 153),
+            Color.fromARGB(255, 153, 51, 204),
+            Color.fromARGB(255, 153, 51, 255),
+            Color.fromARGB(255, 153, 102, 0),
+            Color.fromARGB(255, 153, 102, 51),
+            Color.fromARGB(255, 153, 102, 102),
+            Color.fromARGB(255, 153, 102, 153),
+            Color.fromARGB(255, 153, 102, 204),
+            Color.fromARGB(255, 153, 102, 255),
+            Color.fromARGB(255, 153, 153, 0),
+            Color.fromARGB(255, 153, 153, 51),
+            Color.fromARGB(255, 153, 153, 102),
+            Color.fromARGB(255, 153, 153, 153),
+            Color.fromARGB(255, 153, 153, 204),
+            Color.fromARGB(255, 153, 153, 255),
+            Color.fromARGB(255, 153, 204, 0),
+            Color.fromARGB(255, 153, 204, 51),
+            Color.fromARGB(255, 153, 204, 102),
+            Color.fromARGB(255, 153, 204, 153),
+            Color.fromARGB(255, 153, 204, 204),
+            Color.fromARGB(255, 153, 204, 255),
+            Color.fromARGB(255, 153, 255, 0),
+            Color.fromARGB(255, 153, 255, 51),
+            Color.fromARGB(255, 153, 255, 102),
+            Color.fromARGB(255, 153, 255, 153),
+            Color.fromARGB(255, 153, 255, 204),
+            Color.fromARGB(255, 153, 255, 255),
+            Color.fromARGB(255, 204, 0, 0),
+            Color.fromARGB(255, 204, 0, 51),
+            Color.fromARGB(255, 204, 0, 102),
+            Color.fromARGB(255, 204, 0, 153),
+            Color.fromARGB(255, 204, 0, 204),
+            Color.fromARGB(255, 204, 0, 255),
+            Color.fromARGB(255, 204, 51, 0),
+            Color.fromARGB(255, 204, 51, 51),
+            Color.fromARGB(255, 204, 51, 102),
+            Color.fromARGB(255, 204, 51, 153),
+            Color.fromARGB(255, 204, 51, 204),
+            Color.fromARGB(255, 204, 51, 255),
+            Color.fromARGB(255, 204, 102, 0),
+            Color.fromARGB(255, 204, 102, 51),
+            Color.fromARGB(255, 204, 102, 102),
+            Color.fromARGB(255, 204, 102, 153),
+            Color.fromARGB(255, 204, 102, 204),
+            Color.fromARGB(255, 204, 102, 255),
+            Color.fromARGB(255, 204, 153, 0),
+            Color.fromARGB(255, 204, 153, 51),
+            Color.fromARGB(255, 204, 153, 102),
+            Color.fromARGB(255, 204, 153, 153),
+            Color.fromARGB(255, 204, 153, 204),
+            Color.fromARGB(255, 204, 153, 255),
+            Color.fromARGB(255, 204, 204, 0),
+            Color.fromARGB(255, 204, 204, 51),
+            Color.fromARGB(255, 204, 204, 102),
+            Color.fromARGB(255, 204, 204, 153),
+            Color.fromARGB(255, 204, 204, 204),
+            Color.fromARGB(255, 204, 204, 255),
+            Color.fromARGB(255, 204, 255, 0),
+            Color.fromARGB(255, 204, 255, 51),
+            Color.fromARGB(255, 204, 255, 102),
+            Color.fromARGB(255, 204, 255, 153),
+            Color.fromARGB(255, 204, 255, 204),
+            Color.fromARGB(255, 204, 255, 255),
+            Color.fromARGB(255, 255, 0, 0),
+            Color.fromARGB(255, 255, 0, 51),
+            Color.fromARGB(255, 255, 0, 102),
+            Color.fromARGB(255, 255, 0, 153),
+            Color.fromARGB(255, 255, 0, 204),
+            Color.fromARGB(255, 255, 0, 255),
+            Color.fromARGB(255, 255, 51, 0),
+            Color.fromARGB(255, 255, 51, 51),
+            Color.fromARGB(255, 255, 51, 102),
+            Color.fromARGB(255, 255, 51, 153),
+            Color.fromARGB(255, 255, 51, 204),
+            Color.fromARGB(255, 255, 51, 255),
+            Color.fromARGB(255, 255, 102, 0),
+            Color.fromARGB(255, 255, 102, 51),
+            Color.fromARGB(255, 255, 102, 102),
+            Color.fromARGB(255, 255, 102, 153),
+            Color.fromARGB(255, 255, 102, 204),
+            Color.fromARGB(255, 255, 102, 255),
+            Color.fromARGB(255, 255, 153, 0),
+            Color.fromARGB(255, 255, 153, 51),
+            Color.fromARGB(255, 255, 153, 102),
+            Color.fromARGB(255, 255, 153, 153),
+            Color.fromARGB(255, 255, 153, 204),
+            Color.fromARGB(255, 255, 153, 255),
+            Color.fromARGB(255, 255, 204, 0),
+            Color.fromARGB(255, 255, 204, 51),
+            Color.fromARGB(255, 255, 204, 102),
+            Color.fromARGB(255, 255, 204, 153),
+            Color.fromARGB(255, 255, 204, 204),
+            Color.fromARGB(255, 255, 204, 255),
+            Color.fromARGB(255, 255, 255, 0),
+            Color.fromARGB(255, 255, 255, 51),
+            Color.fromARGB(255, 255, 255, 102),
+            Color.fromARGB(255, 255, 255, 153),
+            Color.fromARGB(255, 255, 255, 204),
+            Color.fromARGB(255, 255, 255, 255),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+            Color.fromARGB(255, 0, 0, 0),
+          ].asMap();
+
+          // print(
+          //     'minimap int $minimap r ${minimap >> 5} g ${minimap >> 2 & 0x07} B ${minimap & 0x03}');
+          // minimapColor = Color.fromARGB(
+          //     255, minimap >> 5, minimap >> 2 & 0x07, minimap & 0x03);
+          minimapColor = colors[minimap] ?? Colors.black;
+          print('minimapColor ${minimapColor}');
+        } else if ([0x00, 0x09, 0x0A, 0x1A, 0x1E].contains(byte)) {
           dat.getUint16();
         } else if ([0x16, 0x19].contains(byte)) {
           dat.getUint32();
@@ -543,8 +868,8 @@ class ItemsLoader {
                   texture.width, texture.height, texture.getBytes());
               Uint8List headed = bitmap.buildHeaded();
               textures.add(t.Texture(
-                width: texture.width,
-                height: texture.height,
+                width: texture.width.toDouble(),
+                height: texture.height.toDouble(),
                 bytes: texture.getBytes(),
                 bitmap: headed,
               ));
@@ -584,15 +909,16 @@ class ItemsLoader {
         id = otbItem.id;
       }
 
-      items.add(Item(
+      items[id] = Item(
         id: id,
         name: '',
+        minimap: minimapColor,
         // 'spritesCount $spritesCount, width $width, height $height, layers $layers, patterns x $patterns_x, patterns y $patterns_y, patterns z $patterns_z, frames $frames',
         stackable: stackable,
         splash: splash,
         fluidContainer: fluidContainer,
         textures: textures,
-      ));
+      );
 
       progress.itemsProgress = (i + 1) / itemsCount / 2;
       sendPort.send(progress);

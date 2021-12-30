@@ -9,7 +9,7 @@ import 'package:otstudio/src/serializers/disk_serializer.dart';
 import 'package:otstudio/src/serializers/map/otbm_serializer.dart';
 import '../loaders/items_loader.dart';
 import '../models/item.dart';
-import './map.dart';
+import './map.dart' as m;
 import '../widgets/resizable_column.dart';
 import '../models/position.dart';
 import '../models/tile.dart';
@@ -22,7 +22,7 @@ const TILE_SIZE = 32;
 
 class ComputeLoadMapPayload {
   ProgressTracker<DiskSerializerDeserializePayload> tracker;
-  List<Item> items;
+  Map<int, Item> items;
 
   ComputeLoadMapPayload(this.tracker, this.items);
 }
@@ -58,7 +58,7 @@ class Editor extends StatefulWidget {
 
 class EditorState extends State<Editor> {
   late AreaMap map;
-  late List<Item> items = [];
+  late Map<int, Item> items = Map();
   late Atlas atlas;
   int? selectedItemIndex;
   // late Future<List<Item>> itemsLoaderFuture;
@@ -80,13 +80,13 @@ class EditorState extends State<Editor> {
   }
 
   Future<EditorData> loadData() async {
-    List<Item> items = await loadItems();
+    Map<int, Item> items = await loadItems();
     Atlas atlas = await ItemsLoader.getAtlas(items);
     AreaMap map = await loadMap();
     return EditorData(items: items, atlas: atlas, map: map);
   }
 
-  Future<List<Item>> loadItems() async {
+  Future<Map<int, Item>> loadItems() async {
     ReceivePort receivePort = ReceivePort();
     receivePort
         .listen((progress) => setState(() => this.itemsProgress = progress));
@@ -98,12 +98,12 @@ class EditorState extends State<Editor> {
       datFilePath: widget.datFilePath,
       sendPort: receivePort.sendPort,
     );
-    List<Item> items = await compute(ItemsLoader.load, payload);
+    Map<int, Item> items = await compute(ItemsLoader.load, payload);
     int i = 0;
-    await Future.forEach(items, (Item item) async {
+    await Future.forEach(items.values, (Item item) async {
       await Future.forEach(item.textures, (t.Texture texture) async {
         ui.Image uiImage = await ItemsLoader.getUiImage(texture.bitmap,
-            width: texture.width, height: texture.height);
+            width: texture.width.toInt(), height: texture.height.toInt());
         texture.image = uiImage;
       });
 
@@ -159,7 +159,7 @@ class EditorState extends State<Editor> {
               print('error ${snapshot.error}');
             }
             if (snapshot.hasData) {
-              items = snapshot.data?.items as List<Item>;
+              items = snapshot.data?.items as Map<int, Item>;
               atlas = snapshot.data?.atlas as Atlas;
               map = snapshot.data?.map as AreaMap;
 
@@ -206,7 +206,8 @@ class EditorState extends State<Editor> {
                                                   padding:
                                                       EdgeInsets.only(left: 2),
                                                   child: Row(
-                                                      children: items[index]
+                                                      children: items.values
+                                                          .toList()[index]
                                                           .textures
                                                           .take(1)
                                                           .map((texture) =>
@@ -233,7 +234,7 @@ class EditorState extends State<Editor> {
                                                   padding:
                                                       EdgeInsets.only(left: 5),
                                                   child: Text(
-                                                      '${items[index].id.toString()}'))
+                                                      '${items.values.toList()[index].id.toString()}'))
                                             ])))))))),
                 // Text('spriteId:' + items[index].spriteId.toString())
                 // child: ListView(
@@ -277,7 +278,7 @@ class EditorState extends State<Editor> {
                 //         .values
                 //         .toList())),
                 Expanded(
-                    child: Map(
+                    child: m.Mapp(
                   map: map,
                   items: items,
                   atlas: atlas,
@@ -338,7 +339,7 @@ class EditorState extends State<Editor> {
 }
 
 class EditorData {
-  List<Item> items;
+  Map<int, Item> items;
   Atlas atlas;
   AreaMap map;
 

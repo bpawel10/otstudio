@@ -15,6 +15,7 @@ class InitState extends State<Init> {
   String? xmlFilePath;
   String? sprFilePath;
   String? datFilePath;
+  String? atlasFilePath;
   int width = 256;
   int height = 256;
 
@@ -24,6 +25,7 @@ class InitState extends State<Init> {
       // xmlFilePath != null &&
       sprFilePath != null &&
       datFilePath != null &&
+      atlasFilePath != null &&
       width > 0 &&
       height > 0;
 
@@ -126,6 +128,18 @@ class InitState extends State<Init> {
                     onPickFile: (path) {
                       setState(() {
                         datFilePath = path;
+                      });
+                    },
+                  )),
+              Visibility(
+                  visible: atlasFilePath != null,
+                  child: Text(atlasFilePath ?? ''),
+                  replacement: FilePicker(
+                    label: 'Select ATLAS file',
+                    extensions: ['png'],
+                    onPickFile: (path) {
+                      setState(() {
+                        atlasFilePath = path;
                       });
                     },
                   )),

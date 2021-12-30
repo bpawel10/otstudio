@@ -6,6 +6,7 @@ import './texture.dart' as t;
 class Item {
   final int id;
   final String name;
+  final Color? minimap;
   final bool ground;
   final bool stackable;
   final bool splash;
@@ -23,6 +24,7 @@ class Item {
   Item({
     required this.id,
     required this.name,
+    this.minimap,
     this.ground = false,
     this.stackable = false,
     this.splash = false,

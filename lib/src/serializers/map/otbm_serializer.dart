@@ -11,7 +11,7 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
   static const FLOORS = 16;
   static const TILE_AREA_TILES = 256 * 256;
 
-  List<Item> items;
+  Map<int, Item> items;
 
   OtbmSerializer(this.items);
 
@@ -354,7 +354,8 @@ class _OtbmReader {
     return string;
   }
 
-  Item? getItem(int byte, Position position, int version, List<Item> items) {
+  Item? getItem(
+      int byte, Position position, int version, Map<int, Item> items) {
     if (byte == _OtbmSpecialCharacter.start) {
       if (getUint8() == _OtbmNodeType.item) {
         // print('item node');
@@ -376,11 +377,12 @@ class _OtbmReader {
               break;
             case _OtbmAttribute.item:
               itemId = getUint16();
-              if (version == 1 &&
-                  (items[itemId].stackable ||
-                      items[itemId].splash ||
-                      items[itemId].fluidContainer)) {
-                subtype = getUint8();
+              if (version == 1) {
+                Item? item = items[itemId];
+                if (item != null &&
+                    (item.stackable || item.splash || item.fluidContainer)) {
+                  subtype = getUint8();
+                }
               }
               break;
             default:

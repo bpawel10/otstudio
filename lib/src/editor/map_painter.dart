@@ -19,11 +19,12 @@ import '../models/atlas.dart';
 const TILE_SIZE = 32;
 
 class MapPainter extends CustomPainter {
-  // final AreaMap map;
-  final List<Tile> tiles;
-  final List<Item> items;
+  final AreaMap map;
+  // final List<Tile> tiles;
+  final Map<int, Item> items;
   final Atlas atlas;
   Rect visible;
+  double scale;
   // final Position position;
   // final Offset offset;
   // final double zoom;
@@ -32,11 +33,12 @@ class MapPainter extends CustomPainter {
   final bool repaint = true;
 
   MapPainter({
-    // required this.map,
-    required this.tiles,
+    required this.map,
+    // required this.tiles,
     required this.items,
     required this.atlas,
     required this.visible,
+    required this.scale,
     // required this.position,
     this.mouse,
     this.selectedItem,
@@ -66,6 +68,17 @@ class MapPainter extends CustomPainter {
     double dx = (position.x * TILE_SIZE).toDouble(); // - offset.dx;
     double dy = (position.y * TILE_SIZE).toDouble(); // -offset.dx;
     return Offset(dx, dy);
+  }
+
+  Offset tileOffsetToCanvasOffset(Offset tileOffset) {
+    double dx = tileOffset.dx - visible.left;
+    double dy = tileOffset.dy - visible.top;
+    return Offset(dx, dy);
+  }
+
+  Offset positionToCanvasOffset(Position position) {
+    return Offset(position.x * TILE_SIZE - visible.left,
+        position.y * TILE_SIZE - visible.top);
   }
 
   Rect tileRectToPositionRect(Rect tileRect) {
@@ -124,20 +137,52 @@ class MapPainter extends CustomPainter {
   //   return tiles;
   // }
 
-  paintItem(Canvas canvas, Offset offset, Item item, {double opacity = 1.0}) {
+  paintItem(Canvas canvas, Paint paint, Offset offset, Item item,
+      {double opacity = 1.0}) {
     // double tileSize = getTileSize();
-    t.Texture texture = items.firstWhere((i) => i.id == item.id).textures[0];
-    paintImage(
-      canvas: canvas,
-      rect: offset.translate(-(texture.width.toDouble() - TILE_SIZE),
-              -(texture.height.toDouble() - TILE_SIZE)) &
-          Size(texture.width.toDouble(), texture.height.toDouble()),
-      // scale: 10, // texture.width.toDouble() / TILE_SIZE,
-      image: texture.image!, // item.textures[0].image!,
-      // fit: BoxFit.none,
-      // filterQuality: FilterQuality.high,
-      opacity: opacity,
-    );
+    // t.Texture texture = item
+    //     .textures[0]; // items.firstWhere((i) => i.id == item.id).textures[0];
+    t.Texture? texture = items[item.id]?.textures[0];
+
+    if (texture != null) {
+      // Stopwatch rectStopwatch = new Stopwatch()..start();
+      // Rect rect = offset.translate(
+      //         -(texture.width - TILE_SIZE), -(texture.height - TILE_SIZE)) &
+      //     texture.size;
+      Rect rect = texture.rect.translate(offset.dx, offset.dy);
+      // rectStopwatch.stop();
+      // print('rect calculated in ${rectStopwatch.elapsedMicroseconds} micro s');
+      // Stopwatch paintStopwatch = new Stopwatch()..start();
+
+      // if (scale >= 0.5) {
+      paintImage(
+        canvas: canvas,
+        rect: rect,
+        // scale: 10, // texture.width.toDouble() / TILE_SIZE,
+        image: texture.image!, // item.textures[0].image!,
+        // fit: BoxFit.none,
+        // filterQuality: FilterQuality.high,
+        opacity: opacity,
+      );
+      // } else {
+      //   Color? minimap = items[item.id]?.minimap;
+      //   if (minimap != null) {
+      //     Paint minimapPaint = Paint();
+      //     minimapPaint.color = minimap;
+      //     // print('painter minimapColor $minimap');
+      //     canvas.drawRect(
+      //       rect,
+      //       minimapPaint,
+      //     );
+      //   }
+      // }
+      // Offset offset2 = offset.translate(
+      //     -(texture.width - TILE_SIZE), -(texture.height - TILE_SIZE));
+      // canvas.drawImage(texture.image!, offset2, paint);
+
+      // paintStopwatch.stop();
+      // print('painted in ${paintStopwatch.elapsedMicroseconds} micro s');
+    }
   }
 
   paintTiles(Canvas canvas, Size size) async {
@@ -187,34 +232,168 @@ class MapPainter extends CustomPainter {
     //   Paint(),
     // );
 
-    Rect visiblePositionRect = tileRectToPositionRect(visible);
+    Rect visiblePositionRect = tileRectToPositionRect(
+        Offset(1035808.0, 1031712.0) & Size(1536.0, 1067.0));
 
     // print('visiblePositionRect $visiblePositionRect');
+    // print('visiblePositionSize ${visiblePositionRect.size}');
 
-    tiles
-        .where((tile) =>
-            visiblePositionRect.contains(Offset(
-                tile.position.x.toDouble(), tile.position.y.toDouble())) &&
-            tile.position.z == 7)
-        .forEach((tile) {
-      Offset tileOffset = positionToTileOffset(tile.position);
-      // print(
-      // 'tile ${tile.position.x} ${tile.position.y} ${tile.position.z} items ${tile.items.length}');
-      tile.items.forEach((item) {
-        // print(
-        //     'position ${tile.position.x} ${tile.position.y} ${tile.position.z} item ${item.id}');
-        paintItem(canvas, tileOffset, item);
-      });
-    });
+    Rect renderablePositionRect = Rect.fromCenter(
+        center: visiblePositionRect.center,
+        width: visiblePositionRect.width + 100,
+        height: visiblePositionRect.height + 100);
+
+    // print('renderablePositionRect $renderablePositionRect');
+    // print('renderablePositionSize ${renderablePositionRect.size}');
+
+    // Stopwatch getTilesStopwatch = new Stopwatch()..start();
+    // List<Tile> visibleTiles = map.tiles.values
+    //     .where((tile) =>
+    //         visiblePositionRect.contains(Offset(
+    //             tile.position.x.toDouble(), tile.position.y.toDouble())) &&
+    //         tile.position.z == 7)
+    //     .toList(); //getTileareasTilesInRect(visiblePositionRect);
+    // getTilesStopwatch.stop();
+    // print('got tiles in ${getTilesStopwatch.elapsedMilliseconds} ms');
+
+    Paint paint = Paint();
+
+    Stopwatch renderStopwatch = new Stopwatch()..start();
+
+    // int xx = 0;
+
+    List<RSTransform> transforms = List.empty(growable: true);
+    List<Rect> rects = List.empty(growable: true);
+
+    for (int x = renderablePositionRect.left.toInt();
+        x < renderablePositionRect.right;
+        x++) {
+      //  int yy = 0;
+      for (int y = renderablePositionRect.top.toInt();
+          y < renderablePositionRect.bottom;
+          y++) {
+        // print('x $x y $y');
+        Tile? tile = map.tiles[Position(x, y, 7)];
+
+        // print('tile $tile');
+        if (tile != null) {
+          // tiles.where((tile) => tile.position.z == 7).forEach((tile) {
+          // Offset tileOffset = positionToTileOffset(tile.position);
+
+          // tile.items.forEach((item) {
+          //   // ui.Rect? rect = atlas.rects[item.id];
+          //   // print('atlas rect for item ${item.id} $rect');
+          //   // if (rect != null) {
+          //   t.Texture? texture = items[item.id]?.textures[0];
+          //   ui.Rect? rect = atlas.rects[item.id];
+
+          //   if (texture != null && rect != null) {
+          //     // if (x < renderablePositionRect.right + 5 &&
+          //     //     y < renderablePositionRect.bottom + 5) {
+          //     //   print('rect $rect');
+          //     //   print('translateX ${tileOffset.dx - texture.width}');
+          //     //   print('translateY ${tileOffset.dy - texture.height}');
+          //     // }
+          //     transforms.add(RSTransform.fromComponents(
+          //         rotation: 0,
+          //         scale: 1,
+          //         anchorX: 0,
+          //         anchorY: 0,
+          //         translateX: tileOffset.dx - texture.width,
+          //         translateY: tileOffset.dy - texture.height));
+          //     rects.add(rect);
+          //     // rects.add(Offset(0, 0) &
+          //     //     Size(texture.width.toDouble(),
+          //     //         texture.height.toDouble())); //rect);
+          //     // }
+          //   }
+          // });
+
+          Offset tileOffset = positionToTileOffset(tile.position);
+          // // print('render tileOffset $tileOffset');
+          // // Offset canvasOffset = positionToCanvasOffset(tile.position);
+          // // offsetStopwatch.stop();
+          // // print(
+          // //     'offsets calculated in ${offsetStopwatch.elapsedMicroseconds} micro s');
+          // // print('canvasOffset $canvasOffset');
+          // // print(
+          // // 'tile ${tile.position.x} ${tile.position.y} ${tile.position.z} items ${tile.items.length}');
+          tile.items.forEach((item) {
+            // print(
+            //     'position ${tile.position.x} ${tile.position.y} ${tile.position.z} item ${item.id}');
+            paintItem(canvas, paint, tileOffset, item);
+          });
+        }
+
+        // yy++;
+      }
+      // xx++;
+    }
+
+    // Paint.enableDithering = true;
+
+    // Paint paint = Paint();
+    // paint.filterQuality = FilterQuality.high;
+    // // paint.isAntiAlias = false;
+    // // paint.blendMode = BlendMode.srcIn;
+
+    // canvas.drawAtlas(
+    //   atlas.atlas,
+    //   transforms,
+    //   rects,
+    //   [],
+    //   null, // BlendMode.srcATop,
+    //   null,
+    //   paint,
+    // );
+
+    // print('painter map.tiles length ${map.tiles.entries.length}');
+
+    // print('hashCode1 ${Position(1, 1, 7).hashCode}');
+    // print('hashCode2 ${Position(1, 1, 7).hashCode}');
+    // print('hashCode3 ${Position(1, 1, 7).hashCode}');
+    // print('hashCode4 ${Position(1, 1, 7).hashCode}');
+    // print('hashCode5 ${Position(1, 1, 7).hashCode}');
+
+    renderStopwatch.stop();
+    print('rendered tiles in ${renderStopwatch.elapsedMilliseconds} ms');
+
+    // Stopwatch renderStopwatch = new Stopwatch()..start();
+    // visibleTiles
+    //     // .where((tile) => tile.position.z == 7)
+    //     // .where((tile) =>
+    //     //     visiblePositionRect.contains(Offset(
+    //     //         tile.position.x.toDouble(), tile.position.y.toDouble())) &&
+    //     //     tile.position.z == 7)
+    //     .forEach((tile) {
+    //   // Stopwatch offsetStopwatch = new Stopwatch()..start();
+    //   // Offset tileOffset = positionToTileOffset(tile.position);
+    //   // Offset canvasOffset = tileOffsetToCanvasOffset(tileOffset);
+    //   Offset canvasOffset = positionToCanvasOffset(tile.position);
+    //   // offsetStopwatch.stop();
+    //   // print(
+    //   //     'offsets calculated in ${offsetStopwatch.elapsedMicroseconds} micro s');
+    //   // print('canvasOffset $canvasOffset');
+    //   // print(
+    //   // 'tile ${tile.position.x} ${tile.position.y} ${tile.position.z} items ${tile.items.length}');
+    //   tile.items.forEach((item) {
+    //     // print(
+    //     //     'position ${tile.position.x} ${tile.position.y} ${tile.position.z} item ${item.id}');
+    //     paintItem(canvas, paint, canvasOffset, item);
+    //   });
+    // });
+    // renderStopwatch.stop();
+    // print('rendered tiles in ${renderStopwatch.elapsedMilliseconds} ms');
   }
 
   @override
   void paint(Canvas canvas, Size size) async {
+    // canvas.drawColor(Colors.red, BlendMode.color);
     // print('MapPainter.paint');
     await paintTiles(canvas, size);
     if (mouse != null && selectedItem != null) {
       Offset mouseTileOffset = offsetToTileOffset(mouse!);
-      paintItem(canvas, mouseTileOffset, selectedItem!, opacity: 0.5);
+      paintItem(canvas, Paint(), mouseTileOffset, selectedItem!, opacity: 0.5);
     }
     // print('MapPainter.painted');
   }
