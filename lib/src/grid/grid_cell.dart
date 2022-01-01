@@ -25,14 +25,14 @@ class GridCell extends StatelessWidget {
       print('parentState cols not empty');
       return Row(
         children: parentState.cols
-            .map((cell) => GridCell(parentState: cell))
+            .map((cell) => Expanded(child: GridCell(parentState: cell)))
             .toList(),
       );
     } else if (parentState.rows.isNotEmpty) {
       print('parentState rows not empty');
       return Column(
         children: parentState.rows
-            .map((cell) => GridCell(parentState: cell))
+            .map((cell) => Expanded(child: GridCell(parentState: cell)))
             .toList(),
       );
     } else {
@@ -41,22 +41,27 @@ class GridCell extends StatelessWidget {
           BlocBuilder<GridCellBloc, GridCellState>(
               builder: (BuildContext blocContext, GridCellState state) {
             print('gridcellbloc builder');
-            return Row(
-              children: [
-                ...state.widgets.asMap().entries.map(
-                    (MapEntry<int, Type> entry) => Draggable(
-                        data: GridDraggableData(index: entry.key, state: state),
-                        feedback: SizedBox(
-                            height: 50, child: Text(entry.value.toString())),
-                        child: SizedBox(
-                            height: 50, child: Text(entry.value.toString())))),
-                TextButton(
-                    child: Text('+'),
-                    onPressed: () => blocContext
-                        .read<GridCellBloc>()
-                        .add(AddGridWidgetPressed())),
-              ],
-            );
+            return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ...parentState.widgets.asMap().entries.map(
+                        (MapEntry<int, Type> entry) => Draggable(
+                            data: GridDraggableData(
+                                index: entry.key, state: state),
+                            feedback: SizedBox(
+                                height: 50,
+                                child: Text(entry.value.toString())),
+                            child: SizedBox(
+                                height: 50,
+                                child: Text(entry.value.toString())))),
+                    TextButton(
+                        child: Text('+'),
+                        onPressed: () => blocContext
+                            .read<GridCellBloc>()
+                            .add(AddGridWidgetPressed())),
+                  ],
+                ));
           }),
           Expanded(child: DragTarget(builder: (BuildContext context,
               List<GridDraggableData?> candidates, List<dynamic> rejected) {
@@ -146,40 +151,42 @@ class GridCell extends StatelessWidget {
                 Align(
                     alignment: Alignment.topCenter,
                     child: SizedBox(
-                        height: 100,
-                        child: DragTarget(
-                          builder: (BuildContext context,
-                              List<GridDraggableData?> candidates,
-                              List<dynamic> rejected) {
-                            print('top dragtarget candidates $candidates');
-                            if (candidates.isNotEmpty) {
-                              context.read<GridCellBloc>().add(GridCellDragged(
-                                  dragType: GridCellDragType.top));
-                              //   return Container(
-                              //     color: Colors.red,
-                              //   );
-                            }
-                            // return Container(color: Colors.blue);
-                            return Container();
-                          },
-                          onWillAccept: (GridDraggableData? data) {
-                            print('top dragtarget onWillAccept');
-                            return true;
-                          },
-                          onAccept: (GridDraggableData? data) {
-                            print('top dragtarget onAccept');
-                            int? index = data?.index;
-                            if (index != null) {
-                              context.read<GridCellBloc>().add(GridCellDropped(
-                                  widgetIndex: index,
-                                  dragType: GridCellDragType.top));
-                            }
-                          },
-                        ))),
+                        height: 50,
+                        child: DragTarget(builder: (BuildContext context,
+                            List<GridDraggableData?> candidates,
+                            List<dynamic> rejected) {
+                          print('top dragtarget candidates $candidates');
+                          return BlocBuilder<GridCellBloc, GridCellState>(
+                            builder: (BuildContext blocContext,
+                                GridCellState state) {
+                              if (candidates.isNotEmpty) {
+                                blocContext.read<GridCellBloc>().add(
+                                    GridCellDragged(
+                                        dragType: GridCellDragType.top));
+                                //   return Container(
+                                //     color: Colors.red,
+                                //   );
+                              }
+                              // return Container(color: Colors.blue);
+                              return Container();
+                            },
+                          );
+                        }, onWillAccept: (GridDraggableData? data) {
+                          print('top dragtarget onWillAccept');
+                          return true;
+                        }, onAccept: (GridDraggableData? data) {
+                          print('top dragtarget onAccept');
+                          int? index = data?.index;
+                          if (index != null) {
+                            context.read<GridCellBloc>().add(GridCellDropped(
+                                widgetIndex: index,
+                                dragType: GridCellDragType.top));
+                          }
+                        }))),
                 Align(
                     alignment: Alignment.bottomCenter,
                     child: SizedBox(
-                        height: 100,
+                        height: 50,
                         child: DragTarget(
                           builder: (BuildContext context,
                               List<GridDraggableData?> candidates,
@@ -211,7 +218,7 @@ class GridCell extends StatelessWidget {
                 Align(
                     alignment: Alignment.centerLeft,
                     child: SizedBox(
-                        width: 100,
+                        width: 50,
                         child: DragTarget(
                           builder: (BuildContext context,
                               List<GridDraggableData?> candidates,
@@ -244,7 +251,7 @@ class GridCell extends StatelessWidget {
                 Align(
                     alignment: Alignment.centerRight,
                     child: SizedBox(
-                        width: 100,
+                        width: 50,
                         child: DragTarget(
                           builder: (BuildContext context,
                               List<GridDraggableData?> candidates,

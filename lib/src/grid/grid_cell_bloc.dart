@@ -49,7 +49,7 @@ class GridCellState {
 // }
 
 class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
-  GridCellBloc() : super(GridCellState(widgets: [TestWidget])) {
+  GridCellBloc() : super(GridCellState()) {
     on<AddGridWidgetPressed>((event, emit) {
       print('onAddGridWidgetPressed');
       // if (!(state is GridColumnCell) && !(state is GridRowCell)) {

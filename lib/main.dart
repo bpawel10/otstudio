@@ -6,10 +6,11 @@ import 'package:otstudio/src/grid/grid_cell_bloc.dart';
 import './src/grid/grid.dart';
 
 void main() {
-  runApp(MultiBlocProvider(providers: [
-    BlocProvider.value(value: GridBloc()),
-    BlocProvider.value(value: GridCellBloc()),
-  ], child: OTStudio()));
+  // runApp(MultiBlocProvider(providers: [
+  //   BlocProvider.value(value: GridBloc()),
+  //   BlocProvider.value(value: GridCellBloc()),
+  // ], child: OTStudio()));
+  runApp(OTStudio());
 }
 
 class OTStudio extends StatelessWidget {

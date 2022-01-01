@@ -4,10 +4,11 @@ import '../test_widget.dart';
 
 abstract class GridEvent {}
 
-class GridState extends GridCellState {
-  GridState({required List<Type> widgets}) : super(widgets: widgets);
-}
-
-class GridBloc extends Bloc<GridEvent, GridState> {
-  GridBloc() : super(GridState(widgets: [TestWidget]));
+// class GridState extends GridCellState {}
+class GridBloc extends Bloc<GridEvent, GridCellState> {
+  GridBloc()
+      : super(GridCellState(cols: [
+          GridCellState(widgets: [TestWidget, TestWidget]),
+          GridCellState(widgets: [TestWidget])
+        ]));
 }
