@@ -18,9 +18,19 @@ class GridCellDragCancelled extends GridCellEvent {}
 class GridCellDropped extends GridCellEvent {
   int widgetIndex;
   GridCellDragType dragType;
+  GridCellBloc source;
 
-  GridCellDropped(
-      {required this.widgetIndex, this.dragType = GridCellDragType.center});
+  GridCellDropped({
+    required this.widgetIndex,
+    this.dragType = GridCellDragType.center,
+    required this.source,
+  });
+}
+
+class GridCellRemoved extends GridCellEvent {
+  int widgetIndex;
+
+  GridCellRemoved(this.widgetIndex);
 }
 
 class GridCellState {
@@ -49,7 +59,10 @@ class GridCellState {
 // }
 
 class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
-  GridCellBloc() : super(GridCellState()) {
+  GridCellBloc? parent;
+
+  GridCellBloc(GridCellState initialState, [this.parent])
+      : super(initialState) {
     on<AddGridWidgetPressed>((event, emit) {
       print('onAddGridWidgetPressed');
       // if (!(state is GridColumnCell) && !(state is GridRowCell)) {
@@ -75,11 +88,46 @@ class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
         widgets: state.widgets,
       ));
     });
+    on<GridCellRemoved>((event, emit) {
+      if (parent != null) {
+        print(
+            'parent col ${parent!.state.cols.any((col) => col.hashCode == state.hashCode)}');
+        print(
+            'parent row ${parent!.state.rows.any((row) => row.hashCode == state.hashCode)}');
+        // print('parent widget ${parent!.state.widgets.any((widget) => widget == state)}');
+      }
+
+      emit(GridCellState(
+        cols: state.cols,
+        rows: state.rows,
+        widgets: state.widgets
+            .asMap()
+            .entries
+            .where((entry) => entry.key != event.widgetIndex)
+            .map((entry) => entry.value)
+            .toList(),
+      ));
+    });
     on<GridCellDropped>((event, emit) {
       print(
           'gridCellDropped, dragType ${event.dragType}, widgets ${state.widgets}');
-      Type splitWidget = state.widgets.removeAt(event.widgetIndex);
+      Type splitWidget = event.source.state.widgets.elementAt(
+          event.widgetIndex); // state.widgets.removeAt(event.widgetIndex);
       print('splitWidget $splitWidget');
+
+      event.source.add(GridCellRemoved(event.widgetIndex));
+
+      // event.source.emit(GridCellState(
+      //   cols: state.cols,
+      //   rows: state.rows,
+      //   widgets: state.widgets
+      //       .asMap()
+      //       .entries
+      //       .where((entry) => entry.key != event.widgetIndex)
+      //       .map((entry) => entry.value)
+      //       .toList(),
+      // ));
+
       switch (event.dragType) {
         case GridCellDragType.left:
           emit(GridCellState(cols: [
@@ -105,13 +153,12 @@ class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
             GridCellState(widgets: [splitWidget]),
           ]));
           break;
-        // TODO: handle dragging widget from one cell to another (but without splitting)
-        // case GridCellDragType.center:
-        //   emit(GridCellState(widgets: [
-        //     ...state.widgets,
-        //     splitWidget,
-        //   ]));
-        //  break;
+        case GridCellDragType.center:
+          emit(GridCellState(widgets: [
+            ...state.widgets,
+            splitWidget,
+          ]));
+          break;
       }
     });
   }
