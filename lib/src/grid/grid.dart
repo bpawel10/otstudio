@@ -10,8 +10,8 @@ class Grid extends StatelessWidget {
     print('grid build');
     return BlocProvider(
         create: (BuildContext context) => GridCellBloc(GridCellState(cols: [
-              GridCellState(widgets: [TestWidget, TestWidget]),
-              GridCellState(widgets: [TestWidget])
+              GridCellBloc(GridCellState(widgets: [TestWidget, TestWidget])),
+              GridCellBloc(GridCellState(widgets: [TestWidget])),
             ])),
         child: GridCell());
   }

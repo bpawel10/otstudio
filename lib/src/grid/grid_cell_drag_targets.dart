@@ -75,6 +75,7 @@ class _GridCellDragTarget extends StatelessWidget {
 
   bool willAccept(GridCellDraggableData? data, GridCellState state) {
     if (data != null) {
+      // GridCellBloc draggableBloc = data.bloc;
       GridCellState draggableState = data.bloc.state;
       if (draggableState.cols.isEmpty && draggableState.rows.isEmpty) {
         if (draggableState.widgets.length > 1 || draggableState != state) {

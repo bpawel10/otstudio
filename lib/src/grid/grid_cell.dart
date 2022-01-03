@@ -17,24 +17,21 @@ class GridCell extends StatelessWidget {
     // print('parentState $parentState');
     return BlocBuilder<GridCellBloc, GridCellState>(
         builder: (BuildContext context, GridCellState state) {
+      GridCellBloc bloc = context.read<GridCellBloc>();
       if (state.cols.isNotEmpty) {
         print('state cols not empty');
         return Row(
           children: state.cols
-              .map((cell) => BlocProvider(
-                  create: (BuildContext context) =>
-                      GridCellBloc(cell, context.read<GridCellBloc>()),
-                  child: Expanded(child: GridCell())))
+              .map((GridCellBloc cellBloc) => BlocProvider.value(
+                  value: cellBloc, child: Expanded(child: GridCell())))
               .toList(),
         );
       } else if (state.rows.isNotEmpty) {
         print('state rows not empty');
         return Column(
           children: state.rows
-              .map((cell) => BlocProvider(
-                  create: (BuildContext context) =>
-                      GridCellBloc(cell, context.read<GridCellBloc>()),
-                  child: Expanded(child: GridCell())))
+              .map((cellBloc) => BlocProvider.value(
+                  value: cellBloc, child: Expanded(child: GridCell())))
               .toList(),
         );
       } else {

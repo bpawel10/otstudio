@@ -27,23 +27,38 @@ class GridCellDropped extends GridCellEvent {
   });
 }
 
-class GridCellRemoved extends GridCellEvent {
+class GridCellColRemoved extends GridCellEvent {
+  int colIndex;
+
+  GridCellColRemoved(this.colIndex);
+}
+
+class GridCellRowRemoved extends GridCellEvent {
+  int rowIndex;
+
+  GridCellRowRemoved(this.rowIndex);
+}
+
+class GridCellWidgetRemoved extends GridCellEvent {
   int widgetIndex;
 
-  GridCellRemoved(this.widgetIndex);
+  GridCellWidgetRemoved(this.widgetIndex);
 }
 
 class GridCellState {
   List<Type> widgets;
-  List<GridCellState> cols;
-  List<GridCellState> rows;
+  List<GridCellBloc> cols;
+  List<GridCellBloc> rows;
   GridCellDragType? dragType;
 
   GridCellState(
-      {this.widgets = const [],
-      this.cols = const [],
-      this.rows = const [],
-      this.dragType});
+      {List<Type>? widgets,
+      List<GridCellBloc>? cols,
+      List<GridCellBloc>? rows,
+      this.dragType})
+      : this.widgets = widgets ?? [],
+        this.cols = cols ?? [],
+        this.rows = rows ?? [];
 }
 
 // class GridColumnCell extends GridCellState {
@@ -59,10 +74,37 @@ class GridCellState {
 // }
 
 class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
-  GridCellBloc? parent;
+  GridCellBloc(GridCellState initialState) : super(initialState) {
+    reactToChildren(state);
+    // state.cols.asMap().entries.forEach((MapEntry<int, GridCellBloc> entry) {
+    //   entry.value.stream.listen((GridCellState event) {
+    //     // print(
+    //     //     'entry.value cols ${entry.value.cols} rows ${entry.value.rows} widgets ${entry.value.state.widgets}');
+    //     print(
+    //         'col event cols ${entry.value.state.cols} rows ${entry.value.state.rows} widgets ${entry.value.state.widgets}');
+    //     if (entry.value.isEmpty) {
+    //       print('remove col at ${entry.key}');
+    //       // GridCellBloc emptyCell = entry.value.state.cols. // state.cols.removeAt(entry.key);
+    //       entry.value.add(GridCellRemoved(entry.key));
+    //       // GridCellBloc emptyCell = state.cols.removeAt(entry.key);
+    //       // emptyCell.close();
+    //     }
+    //   });
+    // });
+    // state.rows.asMap().entries.forEach((MapEntry<int, GridCellBloc> entry) {
+    //   entry.value.stream.listen((GridCellState event) {
+    //     // print('entry.value ${entry.value}');
+    //     print(
+    //         'row event cols ${entry.value.state.cols} rows ${entry.value.state.rows} widgets ${entry.value.state.widgets}');
+    //     if (entry.value.isEmpty) {
+    //       print('remove row at ${entry.key}');
+    //       entry.value.add(GridCellRemoved(entry.key));
+    //       // GridCellBloc emptyCell = this.rows.removeAt(entry.key);
+    //       // emptyCell.close();
+    //     }
+    //   });
+    // });
 
-  GridCellBloc(GridCellState initialState, [this.parent])
-      : super(initialState) {
     on<AddGridWidgetPressed>((event, emit) {
       print('onAddGridWidgetPressed');
       // if (!(state is GridColumnCell) && !(state is GridRowCell)) {
@@ -75,37 +117,51 @@ class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
     });
     on<GridCellDragged>((event, emit) {
       print('onGridCellDragged ${event.dragType}');
-      emit(GridCellState(
-          cols: state.cols,
-          rows: state.rows,
-          widgets: state.widgets,
-          dragType: event.dragType));
+      emit(GridCellState(widgets: state.widgets, dragType: event.dragType));
     });
     on<GridCellDragCancelled>((event, emit) {
       emit(GridCellState(
-        cols: state.cols,
-        rows: state.rows,
         widgets: state.widgets,
       ));
     });
-    on<GridCellRemoved>((event, emit) {
-      if (parent != null) {
+    on<GridCellColRemoved>((event, emit) {
+      state.cols.removeAt(event.colIndex);
+      if (state.cols.length == 1) {
+        print('state.cols.length == 1');
         print(
-            'parent col ${parent!.state.cols.any((col) => col.hashCode == state.hashCode)}');
-        print(
-            'parent row ${parent!.state.rows.any((row) => row.hashCode == state.hashCode)}');
-        // print('parent widget ${parent!.state.widgets.any((widget) => widget == state)}');
+            'state.cols[0] cols ${state.cols[0].state.cols} rows ${state.cols[0].state.rows} widgets ${state.cols[0].state.widgets}');
+        emit(GridCellState(
+          cols: state.cols[0].state.cols,
+          rows: state.cols[0].state.rows,
+          widgets: state.cols[0].state.widgets,
+        ));
+      } else {
+        emit(GridCellState(
+          cols: state.cols,
+        ));
       }
-
+    });
+    on<GridCellRowRemoved>((event, emit) {
+      state.rows.removeAt(event.rowIndex);
+      if (state.rows.length == 1) {
+        emit(GridCellState(
+          cols: state.rows[0].state.cols,
+          rows: state.rows[0].state.rows,
+          widgets: state.rows[0].state.widgets,
+        ));
+      } else {
+        emit(GridCellState(
+          rows: state.rows,
+        ));
+      }
+    });
+    on<GridCellWidgetRemoved>((event, emit) {
+      print(
+          'gridcellremoved cols ${state.cols} rows ${state.rows} widgets ${state.widgets}');
+      Type removedWidget = state.widgets.removeAt(event.widgetIndex);
+      print('gridcellremoved after removed ${state.widgets}');
       emit(GridCellState(
-        cols: state.cols,
-        rows: state.rows,
-        widgets: state.widgets
-            .asMap()
-            .entries
-            .where((entry) => entry.key != event.widgetIndex)
-            .map((entry) => entry.value)
-            .toList(),
+        widgets: state.widgets,
       ));
     });
     on<GridCellDropped>((event, emit) {
@@ -114,8 +170,16 @@ class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
       Type splitWidget = event.source.state.widgets.elementAt(
           event.widgetIndex); // state.widgets.removeAt(event.widgetIndex);
       print('splitWidget $splitWidget');
+      print(
+          'event source cols ${event.source.state.cols} rows ${event.source.state.rows} widgets ${event.source.state.widgets}');
 
-      event.source.add(GridCellRemoved(event.widgetIndex));
+      List<Type> newWidgets = state.widgets;
+
+      if (event.source == this) {
+        newWidgets.removeAt(event.widgetIndex);
+      } else {
+        event.source.add(GridCellWidgetRemoved(event.widgetIndex));
+      }
 
       // event.source.emit(GridCellState(
       //   cols: state.cols,
@@ -131,34 +195,135 @@ class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
       switch (event.dragType) {
         case GridCellDragType.left:
           emit(GridCellState(cols: [
-            GridCellState(widgets: [splitWidget]),
-            GridCellState(widgets: state.widgets),
+            GridCellBloc(GridCellState(widgets: [splitWidget])),
+            GridCellBloc(GridCellState(widgets: newWidgets)),
           ]));
           break;
         case GridCellDragType.right:
           emit(GridCellState(cols: [
-            GridCellState(widgets: state.widgets),
-            GridCellState(widgets: [splitWidget]),
+            GridCellBloc(GridCellState(widgets: newWidgets)),
+            GridCellBloc(GridCellState(widgets: [splitWidget])),
           ]));
           break;
         case GridCellDragType.top:
           emit(GridCellState(rows: [
-            GridCellState(widgets: [splitWidget]),
-            GridCellState(widgets: state.widgets),
+            GridCellBloc(GridCellState(widgets: [splitWidget])),
+            GridCellBloc(GridCellState(widgets: newWidgets)),
           ]));
           break;
         case GridCellDragType.bottom:
           emit(GridCellState(rows: [
-            GridCellState(widgets: state.widgets),
-            GridCellState(widgets: [splitWidget]),
+            GridCellBloc(GridCellState(widgets: newWidgets)),
+            GridCellBloc(GridCellState(widgets: [splitWidget])),
           ]));
           break;
         case GridCellDragType.center:
           emit(GridCellState(widgets: [
-            ...state.widgets,
+            ...newWidgets,
             splitWidget,
           ]));
           break;
+      }
+    });
+  }
+
+  bool get isEmpty =>
+      state.cols.isEmpty && state.rows.isEmpty && state.widgets.isEmpty;
+
+  @override
+  void onChange(Change<GridCellState> change) {
+    print(
+        'onChange next cols ${change.nextState.cols} rows ${change.nextState.rows} widgets ${change.nextState.widgets}');
+    super.onChange(change);
+
+    reactToChildren(change.nextState);
+
+    // change.nextState.cols
+    //     .asMap()
+    //     .entries
+    //     .forEach((MapEntry<int, GridCellBloc> entry) {
+    //   entry.value.stream.listen((GridCellState event) {
+    //     // print(
+    //     //     'entry.value cols ${entry.value.cols} rows ${entry.value.rows} widgets ${entry.value.state.widgets}');
+    //     print(
+    //         'col event cols ${entry.value.state.cols} rows ${entry.value.state.rows} widgets ${entry.value.state.widgets}');
+    //     if (entry.value.isEmpty) {
+    //       print('remove col at ${entry.key}');
+    //       // GridCellBloc emptyCell = entry.value.state.cols. // state.cols.removeAt(entry.key);
+    //       add(GridCellColRemoved(entry.key));
+    //       // entry.value.add(GridCellColRemoved(entry.key));
+    //       // GridCellBloc emptyCell = state.cols.removeAt(entry.key);
+    //       // emptyCell.close();
+    //     }
+    //   });
+    // });
+    // change.nextState.rows
+    //     .asMap()
+    //     .entries
+    //     .forEach((MapEntry<int, GridCellBloc> entry) {
+    //   entry.value.stream.listen((GridCellState event) {
+    //     // print('entry.value ${entry.value}');
+    //     print(
+    //         'row event cols ${entry.value.state.cols} rows ${entry.value.state.rows} widgets ${entry.value.state.widgets}');
+    //     if (entry.value.isEmpty) {
+    //       print('remove row at ${entry.key}');
+    //       add(GridCellRowRemoved(entry.key));
+    //       // entry.value.add(GridCellRemoved(entry.key));
+    //       // GridCellBloc emptyCell = this.rows.removeAt(entry.key);
+    //       // emptyCell.close();
+    //     }
+    //   });
+    // });
+  }
+
+  void reactToChildren(GridCellState state) {
+    state.cols.asMap().entries.forEach((MapEntry<int, GridCellBloc> entry) {
+      reactToChild(entry.value, GridCellColRemoved(entry.key));
+      // entry.value.stream.listen((GridCellState event) {
+      //   // print(
+      //   //     'entry.value cols ${entry.value.cols} rows ${entry.value.rows} widgets ${entry.value.state.widgets}');
+      //   print(
+      //       'col event cols ${entry.value.state.cols} rows ${entry.value.state.rows} widgets ${entry.value.state.widgets}');
+      //   if (entry.value.isEmpty) {
+      //     print('remove col at ${entry.key}');
+      //     // GridCellBloc emptyCell = entry.value.state.cols. // state.cols.removeAt(entry.key);
+      //     add(GridCellColRemoved(entry.key));
+      //     // entry.value.add(GridCellColRemoved(entry.key));
+      //     // GridCellBloc emptyCell = state.cols.removeAt(entry.key);
+      //     // emptyCell.close();
+      //   }
+      // });
+    });
+    state.rows.asMap().entries.forEach((MapEntry<int, GridCellBloc> entry) {
+      reactToChild(entry.value, GridCellRowRemoved(entry.key));
+      // entry.value.stream.listen((GridCellState event) {
+      //   // print('entry.value ${entry.value}');
+      //   print(
+      //       'row event cols ${entry.value.state.cols} rows ${entry.value.state.rows} widgets ${entry.value.state.widgets}');
+      //   if (entry.value.isEmpty) {
+      //     print('remove row at ${entry.key}');
+      //     add(GridCellRowRemoved(entry.key));
+      //     // entry.value.add(GridCellRemoved(entry.key));
+      //     // GridCellBloc emptyCell = this.rows.removeAt(entry.key);
+      //     // emptyCell.close();
+      //   }
+      // });
+    });
+  }
+
+  void reactToChild(GridCellBloc childBloc, GridCellEvent event) {
+    childBloc.stream.listen((_) {
+      // print(
+      //     'entry.value cols ${entry.value.cols} rows ${entry.value.rows} widgets ${entry.value.state.widgets}');
+      print(
+          'reactToChild cols ${childBloc.state.cols} rows ${childBloc.state.rows} widgets ${childBloc.state.widgets}');
+      if (childBloc.isEmpty) {
+        // print('remove col at ${event.index}');
+        // GridCellBloc emptyCell = entry.value.state.cols. // state.cols.removeAt(entry.key);
+        add(event);
+        // entry.value.add(GridCellColRemoved(entry.key));
+        // GridCellBloc emptyCell = state.cols.removeAt(entry.key);
+        // emptyCell.close();
       }
     });
   }
