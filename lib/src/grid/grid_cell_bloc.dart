@@ -1,26 +1,26 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../test_widget.dart';
+// import 'package:flutter_bloc/flutter_bloc.dart';
+// import '../test_widget.dart';
 
-abstract class GridCellEvent {}
+// abstract class GridCellEvent {}
 
 
 
-enum GridCellType { column, row, cell }
+// enum GridCellType { column, row, cell }
 
-class GridCellState {
-  GridCellType type;
-  List<GridCellState> children;
+// class GridCellState {
+//   GridCellType type;
+//   List<GridCellState> children;
 
-  GridCellState({required this.type, required this.children});
-}
+//   GridCellState({required this.type, required this.children});
+// }
 
-class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
-  GridCellBloc(GridCellState initialState) : super(initialState) {
-    on<>((event, emit) {
+// class GridCellBloc extends Bloc<GridCellEvent, GridCellState> {
+//   GridCellBloc(GridCellState initialState) : super(initialState) {
+//     on<>((event, emit) {
 
-    });
-  }
-}
+//     });
+//   }
+// }
 
 
 
