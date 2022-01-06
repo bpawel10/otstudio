@@ -4,7 +4,15 @@
 
 // abstract class GridEvent {}
 
-// // class GridState extends GridCellState {}
+// enum GridCellType { column, row, cell }
+
+// class GridCellState {
+//   GridCellType type;
+//   List<GridCellState> children;
+
+//   GridCellState({required this.type, required this.children});
+// }
+
 // class GridBloc extends Bloc<GridEvent, GridCellState> {
 //   GridBloc()
 //       : super(GridCellState(cols: [

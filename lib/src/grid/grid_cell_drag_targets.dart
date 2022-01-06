@@ -54,10 +54,18 @@ class _GridCellDragTarget extends StatelessWidget {
       }, onAccept: (GridCellDraggableData? data) {
         print('top dragtarget onAccept');
         if (willAccept(data, state)) {
-          context.read<GridCellBloc>().add(GridCellDropped(
-              widgetIndex: data!.index,
-              dragType: _dragType,
-              source: data.bloc));
+          GridCellBloc sourceBloc = data!.bloc;
+          GridCellBloc targetBloc = context.read<GridCellBloc>();
+          int index = data.index;
+          Type widget = sourceBloc.state.widgets[index];
+          if (sourceBloc != targetBloc) {
+            print('sourceBloc.add(gridcellwidgetremoved(index: ${data.index}');
+            sourceBloc.add(GridCellWidgetRemoved(data.index));
+            index--;
+          }
+          context
+              .read<GridCellBloc>()
+              .add(GridCellDropped(dragType: _dragType, widget: widget));
         }
       });
 
