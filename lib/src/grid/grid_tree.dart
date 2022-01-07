@@ -1,91 +1,106 @@
 import 'package:otstudio/src/grid/grid_cell_drag_targets.dart';
 import 'package:otstudio/src/grid/tree.dart';
+import 'package:collection/collection.dart';
 
 enum GridCellType { column, row, cell }
 
 class GridTree extends Tree<GridCellType, Type> {
-  GridTree([Map<int, Node>? nodes]) : super(nodes);
+  GridTree(Node node) : super(node);
   GridTree.from(GridTree gridTree) : super.from(gridTree);
 
-  void move(int source, int target) {
-    Node? sourceNode = removeNode(source)!;
-    if (sourceNode is Leaf<Type>) {
-      add(sourceNode.value, parent: target);
+  void add(List<int> path, Type value) {
+    getNode(path).children.add(Leaf<Type>(value: value));
+  }
+
+  void splitLeft(List<int> source, List<int> target) {
+    Node sourceNode = removeNode(source);
+    Node targetNode = getNode(target);
+    Node targetParentNode = getNode(List.from(target)..removeLast());
+    Node sourceNodeToMove =
+        Composite(type: GridCellType.cell, children: [sourceNode]);
+    if (targetParentNode is Composite<GridCellType> &&
+        targetParentNode.type == GridCellType.row) {
+      targetParentNode.children.insert(0, sourceNodeToMove);
+    } else {
+      Node row = Composite<GridCellType>(
+          type: GridCellType.row, children: [sourceNodeToMove, targetNode]);
+      targetParentNode.children[target[target.length - 1]] = row;
     }
   }
 
-  void splitLeft(int source, int target) {
-    Node sourceLeaf = removeNode(source)!;
-    if (sourceLeaf is Leaf<Type>) {
-      Node targetNode = removeNode(target)!;
-      if (targetNode is Composite && targetNode.type == GridCellType.cell) {
-        int row =
-            addComposite(parent: targetNode.parent, type: GridCellType.row);
-        add(
-          sourceLeaf.value,
-          parent: row,
-        );
-        addComposite(id: targetNode.id, parent: row, type: targetNode.type);
-      }
+  void splitRight(List<int> source, List<int> target) {
+    Node sourceNode = removeNode(source);
+    Node targetNode = getNode(target);
+    Node targetParentNode = getNode(List.from(target)..removeLast());
+
+    Node sourceNodeToMove =
+        Composite(type: GridCellType.cell, children: [sourceNode]);
+    if (targetParentNode is Composite<GridCellType> &&
+        targetParentNode.type == GridCellType.row) {
+      targetParentNode.children.add(sourceNodeToMove);
+    } else {
+      Node row = Composite<GridCellType>(
+          type: GridCellType.row, children: [targetNode, sourceNodeToMove]);
+      targetParentNode.children[target[target.length - 1]] = row;
     }
   }
 
-  void splitRight(int source, int target) {
-    Node sourceLeaf = removeNode(source)!;
-    if (sourceLeaf is Leaf<Type>) {
-      Node targetNode = removeNode(target)!;
-      if (targetNode is Composite && targetNode.type == GridCellType.cell) {
-        int row =
-            addComposite(parent: targetNode.parent, type: GridCellType.row);
-
-        addComposite(id: targetNode.id, parent: row, type: targetNode.type);
-        add(
-          sourceLeaf.value,
-          parent: row,
-        );
-      }
+  void splitTop(List<int> source, List<int> target) {
+    Node sourceNode = removeNode(source);
+    Node targetNode = getNode(target);
+    Node targetParentNode = getNode(List.from(target)..removeLast());
+    Node sourceNodeToMove =
+        Composite(type: GridCellType.cell, children: [sourceNode]);
+    if (targetParentNode is Composite<GridCellType> &&
+        targetParentNode.type == GridCellType.column) {
+      targetParentNode.children.insert(0, sourceNodeToMove);
+    } else {
+      Node column = Composite<GridCellType>(
+          type: GridCellType.column, children: [sourceNodeToMove, targetNode]);
+      targetParentNode.children[target[target.length - 1]] = column;
     }
   }
 
-  void splitTop(int source, int target) {
-    Node sourceLeaf = removeNode(source)!;
-    if (sourceLeaf is Leaf<Type>) {
-      Node targetNode = removeNode(target)!;
-      if (targetNode is Composite && targetNode.type == GridCellType.cell) {
-        int row =
-            addComposite(parent: targetNode.parent, type: GridCellType.column);
-        add(
-          sourceLeaf.value,
-          parent: row,
-        );
-        addComposite(id: targetNode.id, parent: row, type: targetNode.type);
-      }
+  void splitBottom(List<int> source, List<int> target) {
+    Node sourceNode = removeNode(source);
+    Node targetNode = getNode(target);
+    Node targetParentNode = getNode(List.from(target)..removeLast());
+
+    Node sourceNodeToMove =
+        Composite(type: GridCellType.cell, children: [sourceNode]);
+    if (targetParentNode is Composite<GridCellType> &&
+        targetParentNode.type == GridCellType.column) {
+      targetParentNode.children.add(sourceNodeToMove);
+    } else {
+      Node column = Composite<GridCellType>(
+          type: GridCellType.column, children: [targetNode, sourceNodeToMove]);
+      targetParentNode.children[target[target.length - 1]] = column;
     }
   }
 
-  void splitBottom(int source, int target) {
-    print('splitBottom $source $target');
-    Node sourceLeaf = removeNode(source)!;
-    print('sourceLeaf $sourceLeaf');
-    if (sourceLeaf is Leaf<Type>) {
-      Node targetNode = removeNode(target)!;
-      print('targetNode $targetNode id ${targetNode.id}');
-      if (targetNode is Composite && targetNode.type == GridCellType.cell) {
-        print('targetNode is Composite and of type cell');
-        print('ids $ids');
-        int row =
-            addComposite(parent: targetNode.parent, type: GridCellType.column);
-        print('ids2 $ids');
-        addComposite(id: targetNode.id, parent: row, type: targetNode.type);
-        print('ids3 $ids');
-        int targetCell = addComposite(parent: row, type: targetNode.type);
-        print('ids4 $ids');
-        add(
-          sourceLeaf.value,
-          parent: targetCell,
-        );
-        print('ids5 $ids');
-      }
+  void move(List<int> source, List<int> target) {
+    Leaf<Type> sourceNode = removeNode(source) as Leaf<Type>;
+    add(target, sourceNode.value);
+  }
+
+  void removeEmptyForOne(List<int> path) {
+    Node cellNode = getNode(path);
+    print(
+        'removeEmptyForOne path $path cellNode $cellNode children ${cellNode.children}');
+    if (cellNode is Composite<GridCellType> && cellNode.children.isEmpty) {
+      int emptyNodeIndex = path.removeLast();
+      Node cellParentNode = getNode(path);
+      cellParentNode.children.removeAt(emptyNodeIndex);
+    }
+  }
+
+  void removeEmptyForAll(List<int> path) {
+    Node cellNode = getNode(path);
+    removeEmptyForOne(path);
+    if (cellNode is Composite<GridCellType> && cellNode.children.isNotEmpty) {
+      cellNode.children.forEachIndexed((int index, Node _) {
+        removeEmptyForAll([...path, index]);
+      });
     }
   }
 }

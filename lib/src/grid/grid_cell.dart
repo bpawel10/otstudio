@@ -10,38 +10,43 @@ import 'package:otstudio/src/grid/grid_widget.dart';
 import 'package:otstudio/src/grid/tree.dart';
 import 'package:otstudio/src/test_widget.dart';
 import 'dart:developer';
+import 'package:collection/collection.dart';
 
 class GridCell extends StatelessWidget {
-  final int id;
+  final List<int> path;
 
-  GridCell(this.id);
+  GridCell(this.path);
 
   @override
   Widget build(BuildContext context) {
     // print('gridcell builder (id: $id)');
     return BlocBuilder<GridBloc, GridState>(
         builder: (BuildContext context, GridState state) {
-      print('gridcell builder (id: $id) state.tree ${state.tree}');
-      // print(jsonEncode(state.tree.nodes));
-      inspect(state.tree.nodes);
+      GridBloc grid = context.read<GridBloc>();
+      // print('gridcell builder (id: $id) state.tree ${state.tree}');
+      // // print(jsonEncode(state.tree.nodes));
+      // inspect(state.tree.nodes);
 
-      Composite<GridCellType> cell = state.tree.getComposite(id)!;
+      Composite<GridCellType> cell =
+          state.tree.getNode(path) as Composite<GridCellType>;
+
+      print('gridcell path $path cell $cell children ${cell.children}');
 
       switch (cell.type) {
         case GridCellType.column:
           return Column(
-              children: state.tree
-                  .getChildren(id)
-                  .map(
-                    (int child) => Expanded(child: GridCell(child)),
+              children: cell.children
+                  .mapIndexed(
+                    (int index, Node child) =>
+                        Expanded(child: GridCell([...path, index])),
                   )
                   .toList());
         case GridCellType.row:
           return Row(
-              children: state.tree
-                  .getChildren(id)
-                  .map(
-                    (int child) => Expanded(child: GridCell(child)),
+              children: cell.children
+                  .mapIndexed(
+                    (int index, Node child) =>
+                        Expanded(child: GridCell([...path, index])),
                   )
                   .toList());
         case GridCellType.cell:
@@ -51,11 +56,10 @@ class GridCell extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      ...state.tree.getChildren(id).map((int child) {
-                        Leaf childLeaf = state.tree.getLeaf(child)!;
-                        Type widgetType = childLeaf.value;
+                      ...cell.children.mapIndexed((int index, Node child) {
+                        Type widgetType = (child as Leaf).value;
                         return Draggable(
-                            data: GridCellDraggableData(id: child),
+                            data: GridCellDraggableData(path: [...path, index]),
                             feedback: SizedBox(
                                 height: 30,
                                 child: Container(
@@ -79,16 +83,15 @@ class GridCell extends StatelessWidget {
                       }),
                       TextButton(
                           child: Text('+'),
-                          onPressed: () => context
-                              .read<GridBloc>()
-                              .add(AddGridWidgetPressed(cell: id))),
+                          onPressed: () =>
+                              grid.add(AddGridWidgetPressed(path: path))),
                     ],
                   )),
               Expanded(
                   child: Stack(
                 children: [
                   TestWidget(),
-                  Positioned.fill(child: GridCellDragTargets(id)),
+                  Positioned.fill(child: GridCellDragTargets(path)),
                   // Visibility(
                   //     visible: state.dragType == GridCellDragType.left,
                   //     child: Positioned.fill(

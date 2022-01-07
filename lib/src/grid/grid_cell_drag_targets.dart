@@ -1,40 +1,43 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:otstudio/src/grid/grid_bloc.dart';
 import 'package:otstudio/src/grid/grid_tree.dart';
 import 'package:otstudio/src/grid/tree.dart';
+import 'dart:collection';
 
 class GridCellDraggableData {
-  final int id;
+  final List<int> path;
 
-  GridCellDraggableData({required this.id});
+  GridCellDraggableData({required this.path});
 }
 
 enum GridCellDragType { left, right, top, bottom, center }
 
 class GridCellDragTargets extends StatelessWidget {
-  final int cellId;
+  final List<int> path;
 
-  GridCellDragTargets(this.cellId);
+  GridCellDragTargets(this.path);
 
   @override
   Widget build(BuildContext context) => Stack(children: [
-        _GridCellDragTarget(cellId: cellId, dragType: GridCellDragType.center),
-        _GridCellDragTarget(cellId: cellId, dragType: GridCellDragType.top),
-        _GridCellDragTarget(cellId: cellId, dragType: GridCellDragType.bottom),
-        _GridCellDragTarget(cellId: cellId, dragType: GridCellDragType.left),
-        _GridCellDragTarget(cellId: cellId, dragType: GridCellDragType.right),
+        _GridCellDragTarget(path: path, dragType: GridCellDragType.center),
+        _GridCellDragTarget(path: path, dragType: GridCellDragType.top),
+        _GridCellDragTarget(path: path, dragType: GridCellDragType.bottom),
+        _GridCellDragTarget(path: path, dragType: GridCellDragType.left),
+        _GridCellDragTarget(path: path, dragType: GridCellDragType.right),
       ]);
 }
 
 class _GridCellDragTarget extends StatelessWidget {
-  final int cellId;
+  final List<int> path;
   final GridCellDragType dragType;
 
-  _GridCellDragTarget({required this.cellId, required this.dragType});
+  _GridCellDragTarget({required this.path, required this.dragType});
 
   @override
   Widget build(BuildContext context) {
+    print('dragtarget path $path');
     GridBloc grid = context.read<GridBloc>();
     GridTree tree = grid.state.tree;
     GridCellDrag? drag = grid.state.drag;
@@ -46,7 +49,7 @@ class _GridCellDragTarget extends StatelessWidget {
       // print('top dragtarget candidates $candidates');
 
       if (candidates.isNotEmpty) {
-        grid.add(GridCellDragged(target: cellId, type: dragType));
+        grid.add(GridCellDragged(target: path, type: dragType));
         //   return Container(
         //     color: Colors.red,
         //   );
@@ -54,15 +57,15 @@ class _GridCellDragTarget extends StatelessWidget {
       // return Container(color: Colors.blue);
       return Container();
     }, onLeave: (GridCellDraggableData? data) {
-      grid.add(GridCellDragCancelled(target: cellId));
+      grid.add(GridCellDragCancelled(target: path));
     }, onWillAccept: (GridCellDraggableData? data) {
-      print('dragtarget onWillAccept');
+      print('dragtarget onWillAccept $data');
       return willAccept(data, tree);
     }, onAccept: (GridCellDraggableData? data) {
       print('top dragtarget onAccept');
       if (willAccept(data, tree)) {
         grid.add(
-            GridCellDropped(source: data!.id, target: cellId, type: dragType));
+            GridCellDropped(source: data!.path, target: path, type: dragType));
         // GridCellBloc sourceBloc = data!.bloc;
         // GridCellBloc targetBloc = context.read<GridCellBloc>();
         // int index = data.index;
@@ -78,10 +81,14 @@ class _GridCellDragTarget extends StatelessWidget {
       }
     });
 
+    print(
+        'drag.target ${drag?.target} path $path, equal ${drag?.target == path}');
+
     return Stack(children: [
       Visibility(
-          visible:
-              drag != null && drag.target == cellId && drag.type == dragType,
+          visible: drag != null &&
+              ListEquality().equals(drag.target, path) &&
+              drag.type == dragType,
           child: Positioned.fill(
             child: _GridCellDragTargetFeedback(dragType, child: dragFeedback),
           )),
@@ -90,21 +97,20 @@ class _GridCellDragTarget extends StatelessWidget {
   }
 
   bool willAccept(GridCellDraggableData? data, GridTree tree) {
-    if (data != null) {
-      print('willAccept data id ${data.id}');
-      Leaf<Type> sourceLeaf = tree.getLeaf(data.id)!;
-      Composite<GridCellType> sourceComposite =
-          tree.getComposite(sourceLeaf.parent)!;
-      Composite<GridCellType> targetNode = tree.getComposite(cellId)!;
-
-      if (sourceComposite.type == GridCellType.cell) {
-        if (sourceComposite.id != targetNode.id) {
-          return true;
-        }
-        List<int> sourceChildren = tree.getChildren(sourceComposite.id);
-        if (sourceChildren.length > 1) {
-          return true;
-        }
+    print('willAccept data path ${data?.path} path $path');
+    if (data != null && data.path.isNotEmpty) {
+      // Node sourceNode = tree.getNode(data.path);
+      List<int> sourceParentPath = List.from(data.path)..removeLast();
+      Composite<GridCellType> sourceParentNode =
+          tree.getNode(sourceParentPath) as Composite<GridCellType>;
+      print('sourceParentNode.children ${sourceParentNode.children}');
+      // Node targetNode = tree.getNode(path);
+      if (sourceParentNode.type == GridCellType.cell &&
+          (!ListEquality().equals(sourceParentPath, path) ||
+              (dragType != GridCellDragType.center &&
+                  sourceParentNode.children.length > 1))) {
+        print('return true');
+        return true;
       }
 
       // GridTree tree = context.read<GridBloc>();
@@ -116,6 +122,7 @@ class _GridCellDragTarget extends StatelessWidget {
       //   }
       // }
     }
+    print('return false');
     return false;
   }
 }

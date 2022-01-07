@@ -6,21 +6,21 @@ import 'package:otstudio/src/test_widget.dart';
 abstract class GridEvent {}
 
 class GridCellDragged extends GridEvent {
-  int target;
+  List<int> target;
   GridCellDragType type;
 
   GridCellDragged({required this.target, required this.type});
 }
 
 class GridCellDragCancelled extends GridEvent {
-  int target;
+  List<int> target;
 
   GridCellDragCancelled({required this.target});
 }
 
 class GridCellDropped extends GridEvent {
-  int source;
-  int target;
+  List<int> source;
+  List<int> target;
   GridCellDragType type;
 
   GridCellDropped(
@@ -28,13 +28,13 @@ class GridCellDropped extends GridEvent {
 }
 
 class AddGridWidgetPressed extends GridEvent {
-  int cell;
+  List<int> path;
 
-  AddGridWidgetPressed({required this.cell});
+  AddGridWidgetPressed({required this.path});
 }
 
 class GridCellDrag {
-  int target;
+  List<int> target;
   GridCellDragType type;
 
   GridCellDrag({required this.target, required this.type});
@@ -78,12 +78,15 @@ class GridBloc extends Bloc<GridEvent, GridState> {
           break;
       }
 
+      tree.removeEmptyForOne(event.source);
+      // tree.removeEmptyForAll(event.source..removeLast());
+
       emit(GridState(tree: tree));
     });
     on<AddGridWidgetPressed>((event, emit) {
-      emit(GridState(
-        tree: GridTree.from(state.tree..add(TestWidget, parent: event.cell)),
-      ));
+      emit(
+        GridState(tree: GridTree.from(state.tree..add(event.path, TestWidget))),
+      );
     });
   }
 }

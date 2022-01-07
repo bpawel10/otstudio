@@ -15,15 +15,19 @@ class Grid extends StatelessWidget {
     return BlocProvider(
         create: (BuildContext context) {
           return GridBloc(GridState(
-              tree: GridTree(<int, Node>{
-            0: Composite(id: 0, type: GridCellType.row),
-            1: Composite(id: 1, parent: 0, type: GridCellType.cell),
-            2: Leaf(id: 2, parent: 1, value: TestWidget),
-            3: Leaf(id: 3, parent: 1, value: TestWidget2),
-            4: Composite(id: 4, parent: 0, type: GridCellType.cell),
-            5: Leaf(id: 5, parent: 4, value: TestWidget3),
-          })));
+              tree: GridTree(Composite(
+            type: GridCellType.row,
+            children: [
+              Composite(type: GridCellType.cell, children: [
+                Leaf(value: TestWidget),
+                Leaf(value: TestWidget2)
+              ]),
+              Composite(
+                  type: GridCellType.cell,
+                  children: [Leaf(value: TestWidget3)]),
+            ],
+          ))));
         },
-        child: GridCell(0));
+        child: GridCell([]));
   }
 }
