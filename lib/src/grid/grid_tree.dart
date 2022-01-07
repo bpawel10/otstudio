@@ -1,15 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:otstudio/src/grid/grid_cell_drag_targets.dart';
 import 'package:otstudio/src/grid/tree.dart';
 import 'package:collection/collection.dart';
 
 enum GridCellType { column, row, cell }
 
-class GridTree extends Tree<GridCellType, Type> {
+class GridTree extends Tree<GridCellType, Widget> {
   GridTree(Node node) : super(node);
   GridTree.from(GridTree gridTree) : super.from(gridTree);
 
-  void add(List<int> path, Type value) {
-    getNode(path).children.add(Leaf<Type>(value: value));
+  void add(List<int> path, Widget widget) {
+    getNode(path).children.add(Leaf<Widget>(value: widget));
   }
 
   void splitLeft(List<int> source, List<int> target) {
@@ -20,7 +21,7 @@ class GridTree extends Tree<GridCellType, Type> {
         Composite(type: GridCellType.cell, children: [sourceNode]);
     if (targetParentNode is Composite<GridCellType> &&
         targetParentNode.type == GridCellType.row) {
-      targetParentNode.children.insert(0, sourceNodeToMove);
+      targetParentNode.children.insert(target.last, sourceNodeToMove);
     } else {
       Node row = Composite<GridCellType>(
           type: GridCellType.row, children: [sourceNodeToMove, targetNode]);
@@ -37,7 +38,7 @@ class GridTree extends Tree<GridCellType, Type> {
         Composite(type: GridCellType.cell, children: [sourceNode]);
     if (targetParentNode is Composite<GridCellType> &&
         targetParentNode.type == GridCellType.row) {
-      targetParentNode.children.add(sourceNodeToMove);
+      targetParentNode.children.insert(target.last + 1, sourceNodeToMove);
     } else {
       Node row = Composite<GridCellType>(
           type: GridCellType.row, children: [targetNode, sourceNodeToMove]);
@@ -53,7 +54,7 @@ class GridTree extends Tree<GridCellType, Type> {
         Composite(type: GridCellType.cell, children: [sourceNode]);
     if (targetParentNode is Composite<GridCellType> &&
         targetParentNode.type == GridCellType.column) {
-      targetParentNode.children.insert(0, sourceNodeToMove);
+      targetParentNode.children.insert(target.last, sourceNodeToMove);
     } else {
       Node column = Composite<GridCellType>(
           type: GridCellType.column, children: [sourceNodeToMove, targetNode]);
@@ -70,7 +71,7 @@ class GridTree extends Tree<GridCellType, Type> {
         Composite(type: GridCellType.cell, children: [sourceNode]);
     if (targetParentNode is Composite<GridCellType> &&
         targetParentNode.type == GridCellType.column) {
-      targetParentNode.children.add(sourceNodeToMove);
+      targetParentNode.children.insert(target.last + 1, sourceNodeToMove);
     } else {
       Node column = Composite<GridCellType>(
           type: GridCellType.column, children: [targetNode, sourceNodeToMove]);
@@ -79,7 +80,7 @@ class GridTree extends Tree<GridCellType, Type> {
   }
 
   void move(List<int> source, List<int> target) {
-    Leaf<Type> sourceNode = removeNode(source) as Leaf<Type>;
+    Leaf<Widget> sourceNode = removeNode(source) as Leaf<Widget>;
     add(target, sourceNode.value);
   }
 
@@ -88,8 +89,9 @@ class GridTree extends Tree<GridCellType, Type> {
     print(
         'removeEmptyForOne path $path cellNode $cellNode children ${cellNode.children}');
     if (cellNode is Composite<GridCellType> && cellNode.children.isEmpty) {
-      int emptyNodeIndex = path.removeLast();
-      Node cellParentNode = getNode(path);
+      List<int> emptyNodePath = List.from(path);
+      int emptyNodeIndex = emptyNodePath.removeLast();
+      Node cellParentNode = getNode(emptyNodePath);
       cellParentNode.children.removeAt(emptyNodeIndex);
     }
   }

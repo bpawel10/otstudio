@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:otstudio/src/context_menu/context_menu.dart';
+import 'package:otstudio/src/context_menu/context_menu_provider.dart';
 import 'package:otstudio/src/grid/grid_bloc.dart';
 import 'package:otstudio/src/grid/grid_cell_bloc.dart';
 import './src/grid/grid.dart';
@@ -52,7 +54,7 @@ class OTStudio extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: Grid(),
+      home: ContextMenuProvider(child: Grid()),
     );
   }
 }

@@ -6,7 +6,6 @@ import 'package:otstudio/src/grid/grid_bloc.dart';
 import 'package:otstudio/src/grid/grid_cell_bloc.dart';
 import 'package:otstudio/src/grid/grid_cell_drag_targets.dart';
 import 'package:otstudio/src/grid/grid_tree.dart';
-import 'package:otstudio/src/grid/grid_widget.dart';
 import 'package:otstudio/src/grid/tree.dart';
 import 'package:otstudio/src/test_widget.dart';
 import 'dart:developer';
@@ -90,7 +89,6 @@ class GridCell extends StatelessWidget {
               Expanded(
                   child: Stack(
                 children: [
-                  TestWidget(),
                   Positioned.fill(child: GridCellDragTargets(path)),
                   // Visibility(
                   //     visible: state.dragType == GridCellDragType.left,

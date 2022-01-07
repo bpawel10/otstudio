@@ -12,7 +12,7 @@ class Grid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print('grid build');
-    return BlocProvider(
+    return BlocProvider<GridBloc>(
         create: (BuildContext context) {
           return GridBloc(GridState(
               tree: GridTree(Composite(

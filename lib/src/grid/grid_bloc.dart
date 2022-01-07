@@ -79,13 +79,14 @@ class GridBloc extends Bloc<GridEvent, GridState> {
       }
 
       tree.removeEmptyForOne(event.source);
-      // tree.removeEmptyForAll(event.source..removeLast());
+      tree.removeEmptyForAll(event.source..removeLast());
 
       emit(GridState(tree: tree));
     });
     on<AddGridWidgetPressed>((event, emit) {
       emit(
-        GridState(tree: GridTree.from(state.tree..add(event.path, TestWidget))),
+        GridState(
+            tree: GridTree.from(state.tree..add(event.path, TestWidget()))),
       );
     });
   }
