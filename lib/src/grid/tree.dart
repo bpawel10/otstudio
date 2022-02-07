@@ -6,9 +6,11 @@ abstract class Node {
 
 class Composite<T> extends Node {
   T type;
+  double? size;
 
   Composite({
     required this.type,
+    this.size,
     List<Node>? children,
   }) : super(children: children);
 }

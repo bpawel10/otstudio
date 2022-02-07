@@ -4,7 +4,7 @@ import 'package:otstudio/src/context_menu/context_menu.dart';
 class TestContextMenuButton extends ContextMenuButton {
   Image? get icon => null;
   String get name => 'Test';
-  Function(BuildContext)? get handler => null;
+  Function(BuildContext)? get handler => (BuildContext context) => {};
   List<ContextMenuItem>? get items => null;
 }
 

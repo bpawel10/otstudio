@@ -19,12 +19,12 @@ class Grid extends StatelessWidget {
             type: GridCellType.row,
             children: [
               Composite(type: GridCellType.cell, children: [
-                Leaf(value: TestWidget),
-                Leaf(value: TestWidget2)
+                Leaf(value: TestWidget()),
+                Leaf(value: TestWidget2())
               ]),
               Composite(
                   type: GridCellType.cell,
-                  children: [Leaf(value: TestWidget3)]),
+                  children: [Leaf(value: TestWidget3())]),
             ],
           ))));
         },

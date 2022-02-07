@@ -34,12 +34,32 @@ class GridCell extends StatelessWidget {
       switch (cell.type) {
         case GridCellType.column:
           return Column(
-              children: cell.children
-                  .mapIndexed(
-                    (int index, Node child) =>
-                        Expanded(child: GridCell([...path, index])),
-                  )
-                  .toList());
+              children: cell.children.mapIndexed((int index, Node child) {
+            Widget cellWidget = Stack(children: [
+              GridCell([...path, index]),
+              Visibility(
+                  visible: index > 0,
+                  child: Align(
+                      alignment: Alignment.topCenter,
+                      child: SizedBox(
+                          height: 5,
+                          child:
+                              Container(color: Colors.blue.withOpacity(0.2))))),
+              Visibility(
+                  visible: index < cell.children.length - 1,
+                  child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SizedBox(
+                          height: 5,
+                          child:
+                              Container(color: Colors.blue.withOpacity(0.2))))),
+            ]);
+
+            if (child is Composite<GridCellType> && child.size != null) {
+              return SizedBox(height: child.size, child: cellWidget);
+            }
+            return Expanded(child: cellWidget);
+          }).toList());
         case GridCellType.row:
           return Row(
               children: cell.children
@@ -50,38 +70,51 @@ class GridCell extends StatelessWidget {
                   .toList());
         case GridCellType.cell:
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
                       ...cell.children.mapIndexed((int index, Node child) {
-                        Type widgetType = (child as Leaf).value;
+                        Widget widget = (child as Leaf).value;
                         return Draggable(
                             data: GridCellDraggableData(path: [...path, index]),
                             feedback: SizedBox(
-                                height: 30,
+                                height: 28,
                                 child: Container(
                                     padding: EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                        color: Colors.grey.shade700),
-                                    child: Text(widgetType.toString(),
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            color: Colors.white)))),
+                                    // decoration: BoxDecoration(
+                                    //     color: Colors.grey.shade700),
+                                    child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Theme(
+                                            data: Theme.of(context),
+                                            child: Text(
+                                              widget.toString(),
+                                              //  textAlign: TextAlign.center,
+                                            ))))),
                             child: SizedBox(
-                                height: 30,
+                                height: 28,
                                 child: Container(
                                     padding: EdgeInsets.all(5),
                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade700),
-                                    child: Text(widgetType.toString(),
-                                        style: TextStyle(
-                                            fontSize: 15,
-                                            color: Colors.white)))));
+                                        border: Border(
+                                            bottom: BorderSide(
+                                                color: Theme.of(context)
+                                                    .primaryColor,
+                                                width: 2))),
+                                    // decoration: BoxDecoration(
+                                    //     color: Colors.grey.shade700),
+                                    child: Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          widget.toString(),
+                                          //  textAlign: TextAlign.center,
+                                        )))));
                       }),
-                      TextButton(
-                          child: Text('+'),
+                      IconButton(
+                          icon: Icon(Icons.add),
                           onPressed: () =>
                               grid.add(AddGridWidgetPressed(path: path))),
                     ],
@@ -89,6 +122,7 @@ class GridCell extends StatelessWidget {
               Expanded(
                   child: Stack(
                 children: [
+                  (cell.children.first as Leaf<Widget>).value,
                   Positioned.fill(child: GridCellDragTargets(path)),
                   // Visibility(
                   //     visible: state.dragType == GridCellDragType.left,

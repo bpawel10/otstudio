@@ -16,7 +16,14 @@ void main() {
 }
 
 class OTStudio extends StatelessWidget {
-  final TextStyle textStyle = GoogleFonts.montserrat();
+  // final TextStyle textStyle =
+  //     TextStyle(fontFamily: 'SF Pro', color: Color(0xFFE6E0C1));
+
+  final TextStyle textStyle = GoogleFonts.roboto(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+      color: Color(0xFFE6E0C1));
 
   // This widget is the root of your application.
   @override
@@ -41,8 +48,10 @@ class OTStudio extends StatelessWidget {
           button: textStyle,
           overline: textStyle,
         ).apply(
-            displayColor: Colors.grey.shade300,
-            bodyColor: Colors.grey.shade300),
+          displayColor: Colors.pink, // Colors.grey.shade300,
+          bodyColor: Colors.white,
+          // Color(0xFFE6E0C1), // Colors.purple, // Colors.grey.shade300,
+        ),
         primarySwatch: Colors.green,
         inputDecorationTheme: InputDecorationTheme(
           // floatingLabelBehavior: FloatingLabelBehavior.
@@ -54,7 +63,7 @@ class OTStudio extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: ContextMenuProvider(child: Grid()),
+      home: Scaffold(body: ContextMenuProvider(child: Grid())),
     );
   }
 }
