@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'src/init/init.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:otstudio/src/bloc/app_bloc.dart';
+import 'package:otstudio/src/screens/welcome/welcome.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(OTStudio());
+  doWhenWindowReady(() {
+    final Size initialSize = Size(500, 400);
+    appWindow.minSize = initialSize;
+    appWindow.size = initialSize;
+    appWindow.maxSize = initialSize;
+    appWindow.alignment = Alignment.center;
+    appWindow.show();
+  });
 }
 
 class OTStudio extends StatelessWidget {
-  final TextStyle textStyle = GoogleFonts.montserrat();
+  final TextStyle textStyle = GoogleFonts.roboto(); // montserrat();
 
   // This widget is the root of your application.
   @override
@@ -46,7 +56,9 @@ class OTStudio extends StatelessWidget {
         ),
       ),
       debugShowCheckedModeBanner: false,
-      home: Init(),
+      home: BlocProvider(
+          create: (context) => AppBloc()..add(AppInitEvent()),
+          child: Scaffold(body: Welcome())),
     );
   }
 }
