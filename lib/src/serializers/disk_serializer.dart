@@ -5,6 +5,7 @@ abstract class DiskSerializer<T> extends Serializer<
     DiskSerializerSerializePayload<T>, DiskSerializerDeserializePayload, T> {
   Future<void> serialize(
       ProgressTracker<DiskSerializerSerializePayload<T>> tracker);
+
   Future<T> deserialize(
       ProgressTracker<DiskSerializerDeserializePayload> tracker);
 }

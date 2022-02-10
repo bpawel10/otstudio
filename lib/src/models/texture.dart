@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-
-import 'package:otstudio/src/loaders/items_loader.dart';
+import 'package:otstudio/src/models/sprite.dart';
 
 class Texture {
   final double width;
@@ -19,6 +18,6 @@ class Texture {
       required this.bitmap,
       this.image}) {
     size = ui.Size(width, height);
-    rect = ui.Offset(-(width - SPRITE_SIZE), -(height - SPRITE_SIZE)) & size;
+    rect = ui.Offset(-(width - Sprite.SIZE), -(height - Sprite.SIZE)) & size;
   }
 }

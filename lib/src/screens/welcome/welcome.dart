@@ -1,5 +1,6 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
+import 'package:otstudio/src/screens/welcome/welcome_scaffold.dart';
 import 'package:otstudio/src/widgets/file_field.dart';
 import 'package:otstudio/src/screens/editor/editor.dart';
 import 'package:otstudio/src/widgets/input.dart';
@@ -45,28 +46,21 @@ class Welcome extends StatelessWidget {
   // }
 
   @override
-  Widget build(BuildContext context) => Column(children: [
-        WindowTitleBarBox(
-          child: MoveWindow(),
-        ),
+  Widget build(BuildContext context) => WelcomeScaffold(
+          child: Row(children: [
         Expanded(
-            child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 10, 20, 20),
-                child: Row(children: [
-                  Expanded(
-                      child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Header(),
-                      SizedBox(
-                        height: 20,
-                      ),
-                      Buttons(),
-                    ],
-                  )),
-                  Expanded(child: RecentProjects()),
-                ]))),
-      ]);
+            child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Header(),
+            SizedBox(
+              height: 20,
+            ),
+            Buttons(),
+          ],
+        )),
+        Expanded(child: RecentProjects()),
+      ]));
 }
 
 //   @override

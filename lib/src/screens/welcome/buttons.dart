@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:otstudio/src/sources/assets_source.dart';
-import 'package:otstudio/src/sources/otb_xml_spr_dat_items_source.dart';
-import 'package:otstudio/src/sources/otbm_map_source.dart';
-import 'package:otstudio/src/sources/project_source.dart';
+import 'package:otstudio/src/screens/project_configurator/otbm_project_configurator.dart';
+import 'package:otstudio/src/screens/project_configurator/project_picker.dart';
 import 'package:otstudio/src/utils/file_picker.dart';
-import 'project_configurator.dart';
 
 class Buttons extends StatelessWidget {
   Buttons();
@@ -15,17 +12,17 @@ class Buttons extends StatelessWidget {
     //     context, MaterialPageRoute(builder: (_) => ProjectConfigurator()));
   }
 
-  void openProject(BuildContext context) {}
+  void openProject(BuildContext context) {
+    Navigator.push(context,
+        MaterialPageRoute(builder: (BuildContext context) => ProjectPicker()));
+  }
 
-  void importOtbm(BuildContext context, String otbmPath) {
-    ProjectSource source = ProjectSource(
-        assetsSource: AssetsSource(itemsSource: OtbXmlSprDatItemsSource()),
-        mapSource: OtbmMapSource(otbmPath: otbmPath));
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-            builder: (BuildContext context) =>
-                ProjectConfigurator(initialSource: source)));
+  // void importOtbm(BuildContext context, String otbmPath) {
+  // }
+
+  void openProjectConfigurator(BuildContext context, Widget configurator) {
+    Navigator.push(context,
+        MaterialPageRoute(builder: (BuildContext context) => configurator));
   }
 
   @override
@@ -40,12 +37,13 @@ class Buttons extends StatelessWidget {
               icon: FaIcon(FontAwesomeIcons.solidFolderOpen, size: 16),
               label: Text('Open'),
               onPressed: () => openProject(context)),
-          SizedBox(height: 10),
-          ElevatedButton.icon(
-              icon: FaIcon(FontAwesomeIcons.fileImport, size: 16),
-              label: Text('Import OTBM'),
-              onPressed: () => FilePicker(extensions: ['otbm'])
-                  .pickFile((path) => importOtbm(context, path))),
+          // SizedBox(height: 10),
+          // ElevatedButton.icon(
+          //     icon: FaIcon(FontAwesomeIcons.fileImport, size: 16),
+          //     label: Text('Import OTBM'),
+          //     onPressed: () => FilePicker(extensions: ['otbm']).pickFile(
+          //         (path) => openProjectConfigurator(
+          //             context, OtbmProjectConfigurator(otbmPath: path)))),
         ],
       );
 }
