@@ -20,7 +20,6 @@ void main() {
 class OTStudio extends StatelessWidget {
   final TextStyle textStyle = GoogleFonts.roboto(); // montserrat();
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -57,7 +56,7 @@ class OTStudio extends StatelessWidget {
       ),
       debugShowCheckedModeBanner: false,
       home: BlocProvider(
-          create: (context) => AppBloc()..add(AppInitEvent()),
+          create: (BuildContext context) => AppBloc()..add(AppInitEvent()),
           child: Scaffold(body: Welcome())),
     );
   }

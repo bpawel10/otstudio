@@ -1,7 +1,10 @@
 import 'package:otstudio/src/progress_tracker.dart';
+import 'package:otstudio/src/serializers/serializer.dart';
 
-abstract class DiskSerializer<T> {
-  void serialize(ProgressTracker<DiskSerializerSerializePayload<T>> tracker);
+abstract class DiskSerializer<T> extends Serializer<
+    DiskSerializerSerializePayload<T>, DiskSerializerDeserializePayload, T> {
+  Future<void> serialize(
+      ProgressTracker<DiskSerializerSerializePayload<T>> tracker);
   Future<T> deserialize(
       ProgressTracker<DiskSerializerDeserializePayload> tracker);
 }

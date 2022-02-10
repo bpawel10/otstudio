@@ -1,6 +1,6 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
-import 'package:otstudio/src/widgets/file_picker.dart';
+import 'package:otstudio/src/widgets/file_field.dart';
 import 'package:otstudio/src/screens/editor/editor.dart';
 import 'package:otstudio/src/widgets/input.dart';
 import 'header.dart';

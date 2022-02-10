@@ -1,18 +1,20 @@
-import 'package:otstudio/src/models/area_map.dart';
-import 'package:otstudio/src/progress_tracker.dart';
 import 'package:otstudio/src/serializers/disk_serializer.dart';
+import 'package:otstudio/src/progress_tracker.dart';
 
-class SkylessSerializer extends DiskSerializer<AreaMap> {
+class OtbSerializer extends DiskSerializer<OtbDocument> {
   @override
   Future<void> serialize(
-      ProgressTracker<DiskSerializerSerializePayload<AreaMap>> tracker) async {
+      ProgressTracker<DiskSerializerSerializePayload<OtbDocument>> tracker) {
     // TODO: implement serialize
+    throw UnimplementedError();
   }
 
   @override
-  Future<AreaMap> deserialize(
+  Future<OtbDocument> deserialize(
       ProgressTracker<DiskSerializerDeserializePayload> tracker) {
     // TODO: implement deserialize
     throw UnimplementedError();
   }
 }
+
+class OtbDocument {}

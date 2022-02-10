@@ -16,8 +16,8 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
   OtbmSerializer(this.items);
 
   @override
-  void serialize(
-      ProgressTracker<DiskSerializerSerializePayload<AreaMap>> tracker) {
+  Future<void> serialize(
+      ProgressTracker<DiskSerializerSerializePayload<AreaMap>> tracker) async {
     // TODO: implement serialize
   }
 
