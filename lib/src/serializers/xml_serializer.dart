@@ -16,6 +16,8 @@ class XmlSerializer extends DiskSerializer<XmlDocument> {
   Future<XmlDocument> deserialize(
       ProgressTracker<DiskSerializerDeserializePayload> tracker) async {
     String xmlString = await File(tracker.data.path).readAsString();
-    return XmlDocument.parse(xmlString);
+    XmlDocument xml = XmlDocument.parse(xmlString);
+    tracker.progress = 1;
+    return xml;
   }
 }

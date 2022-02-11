@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:otstudio/src/sources/assets_source.dart';
-import 'package:otstudio/src/sources/otb_xml_spr_dat_items_source.dart';
-import 'package:otstudio/src/sources/otbm_source.dart';
-import 'package:otstudio/src/sources/project_source.dart';
-import 'package:otstudio/src/sources/source.dart';
+import 'package:otstudio/src/screens/project_configurator/sources/assets_source.dart';
+import 'package:otstudio/src/screens/project_configurator/sources/otb_xml_spr_dat_items_source.dart';
+import 'package:otstudio/src/screens/project_configurator/sources/otbm_source.dart';
+import 'package:otstudio/src/screens/project_configurator/sources/project_source.dart';
+import 'package:otstudio/src/screens/project_configurator/sources/source.dart';
 import 'package:otstudio/src/utils/file_picker.dart';
 import 'package:otstudio/src/widgets/file_field.dart';
 import 'package:otstudio/src/models/project.dart';

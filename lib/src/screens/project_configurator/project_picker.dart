@@ -1,9 +1,10 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:otstudio/src/screens/project_configurator/project_loader.dart';
+import 'package:otstudio/src/screens/project_configurator/sources/tfs_project_source.dart';
 import 'package:otstudio/src/screens/welcome/welcome_scaffold.dart';
 
 class ProjectPicker extends StatefulWidget {
@@ -19,7 +20,7 @@ class _State extends State<ProjectPicker> {
 
   showDragAndDropErrorMessage(String message) {
     setState(() => dragAndDropErrorMessage = message);
-    Future future = Future.delayed(Duration(seconds: 2),
+    Future.delayed(Duration(seconds: 2),
         () => setState(() => dragAndDropErrorMessage = null));
   }
 
@@ -62,6 +63,13 @@ class _State extends State<ProjectPicker> {
                         if (!projectDirectoryExists) {
                           return showDragAndDropErrorMessage('Not a directory');
                         }
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (BuildContext context) =>
+                                    ProjectLoader(
+                                        projectSource: TfsProjectSource(
+                                            projectPath: file.path))));
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -132,7 +140,7 @@ class _State extends State<ProjectPicker> {
                       width: 10,
                     ),
                     ElevatedButton(
-                        child: Text('Cipsoft 7.7'), onPressed: () {}),
+                        child: Text('CipSoft 7.7'), onPressed: () {}),
                   ],
                 ),
               ])),

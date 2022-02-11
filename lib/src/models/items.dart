@@ -1,10 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:otstudio/src/models/item.dart';
 
-class Items extends StatelessWidget {
-  Items();
+class Items {
+  final Map<int, Item> items;
 
-  @override
-  Widget build(BuildContext context) {
-    return Container();
-  }
+  Items({required this.items});
 }

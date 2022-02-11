@@ -54,6 +54,7 @@ class DatSerializer extends DiskSerializer<DatDocument> {
         byte = dat.getUint8();
         // print('byte ' + byte.toString());
       }
+
       // print('dat3');
       int width = dat.getUint8();
       int height = dat.getUint8();
@@ -73,7 +74,7 @@ class DatSerializer extends DiskSerializer<DatDocument> {
 
       List<int> sprites = [];
 
-      for (int j = 0; i < spritesCount; j++) {
+      for (int j = 0; j < spritesCount; j++) {
         sprites.add(dat.getUint16(endian: Endian.little));
       }
 

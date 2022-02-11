@@ -48,7 +48,7 @@ class OtbSerializer extends DiskSerializer<OtbDocument> {
 
       late int serverId;
       late int clientId;
-      late String name;
+      String? name;
       int? groundSpeed;
       Uint8List? spriteHash;
       int? minimapColor;
@@ -152,7 +152,7 @@ class OtbItem {
   final int flags;
   final int serverId;
   final int clientId;
-  final String name;
+  final String? name;
   final int? groundSpeed;
   final Uint8List? spriteHash;
   final int? minimapColor;
