@@ -16,7 +16,6 @@ class MapView extends StatelessWidget {
   @override
   Widget build(BuildContext context) => BlocBuilder<ProjectBloc, ProjectState>(
           builder: (BuildContext context, state) {
-        print('MapView.build');
         painter = MapPainter(project: state.project);
         return Container(
           color: Colors.black,

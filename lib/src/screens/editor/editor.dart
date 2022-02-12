@@ -26,6 +26,7 @@ class Editor extends StatelessWidget {
               ProjectBloc(ProjectState(project: project)),
           child: Row(children: [
             MapItems(),
+            // Expanded(child: MapView()),
             Expanded(
                 child: Grid(
                     tree: GridTree(Composite(

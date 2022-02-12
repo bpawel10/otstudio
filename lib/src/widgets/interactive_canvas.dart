@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
+import 'package:otstudio/src/screens/editor/modules/map/map_painter.dart';
 
 class InteractiveCanvas extends StatefulWidget {
   final Size size;
   final Offset offset;
-  final double scale;
+  double scale;
   final Offset mouse;
-  final CustomPainter painter;
+  final MapPainter painter;
 
   InteractiveCanvas(
       {required this.size,
       this.offset = Offset.zero,
       this.scale = 1, // 0.5, // 1,
       required this.mouse,
-      required this.painter});
+      required this.painter}) {
+    // this.scale = ui.window.devicePixelRatio;
+  }
 
   @override
   _InteractiveCanvasState createState() => _InteractiveCanvasState();
@@ -86,13 +90,13 @@ class _InteractiveCanvasState extends State<InteractiveCanvas> {
   }
 }
 
-class _InteractivePainter extends CustomPainter {
+class _InteractivePainter extends MapPainter {
   // Size size;
-  CustomPainter painter;
+  MapPainter painter;
   ValueNotifier<InteractiveCanvasState2> repaint;
 
   _InteractivePainter({required this.painter, required this.repaint})
-      : super(repaint: repaint);
+      : super(project: painter.project, repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -104,10 +108,13 @@ class _InteractivePainter extends CustomPainter {
     // print('repaint.value.scale $scale');
     // print('canvas translate offset dx ${offset.dx} dy ${offset.dy}');
     canvas.translate(-offset.dx * scale, -offset.dy * scale);
-    // canvas.scale(scale);
-    canvas.clipRect(offset & size);
+
+    var dpr = ui.window.devicePixelRatio;
+    canvas.scale(scale);
+    canvas.clipRect(offset & size / scale);
     // print('painter.paint');
-    painter.paint(canvas, size);
+    // painter.paintAtlas(canvas, size / scale, offset * scale);
+    painter.paintTiles(canvas, size / scale, offset * scale);
     // print('painter painted');
   }
 

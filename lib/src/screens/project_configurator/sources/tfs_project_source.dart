@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:otstudio/src/models/sprite.dart';
 import 'package:otstudio/src/models/texture.dart';
 import 'package:otstudio/src/models/tile.dart';
+import 'package:otstudio/src/models/atlas.dart';
 import 'package:path/path.dart';
 import 'package:xml/xml.dart';
 import 'package:collection/collection.dart';
@@ -97,7 +98,7 @@ class TfsProjectSource extends Source<Project> {
           stackable: datItem.stackable,
           splash: datItem.splash,
           fluidContainer: datItem.fluidContainer,
-          textures: buildItemTextures(datItem.textures, spr.sprites));
+          textures: getItemTextures(datItem.textures, spr.sprites));
     });
 
     Assets assets = Assets(items: Items(items: items));
@@ -114,7 +115,7 @@ class TfsProjectSource extends Source<Project> {
     return Project(assets: assets, map: modelMap.Map(map: mapWithProperIds));
   }
 
-  List<Texture> buildItemTextures(
+  List<Texture> getItemTextures(
       DatTextures datTextures, Map<int, Sprite> sprites) {
     // List<int> spritesIds = datTextures.sprites.reversed.toList();
 
