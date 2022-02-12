@@ -1,15 +1,25 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:otstudio/src/models/assets.dart';
+import 'package:otstudio/src/models/project.dart';
 
 abstract class ProjectEvent {}
 
-abstract class ProjectState {
-  String path;
-  Assets assets;
+class SelectedItemProjectEvent extends ProjectEvent {
+  final int id;
 
-  ProjectState({required this.path, required this.assets});
+  SelectedItemProjectEvent({required this.id});
 }
 
-abstract class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
-  ProjectBloc(ProjectState initialState) : super(initialState);
+class ProjectState {
+  Project project;
+
+  ProjectState({required this.project});
+}
+
+class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
+  ProjectBloc(ProjectState initialState) : super(initialState) {
+    on<SelectedItemProjectEvent>((event, emit) => emit(ProjectState(
+        project: Project(
+            assets: state.project.assets,
+            map: state.project.map..selectedItemId = event.id))));
+  }
 }

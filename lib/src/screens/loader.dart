@@ -31,7 +31,7 @@ class _State<T, V> extends State<Loader<T, V>> {
         ProgressTracker<T?>(widget.payload, widget.port.sendPort);
     widget.port.listen((newProgress) => setState(() => progress = newProgress));
     V result = await compute(widget.future, tracker);
-    widget.callback(result);
+    await widget.callback(result);
     return result;
   }
 

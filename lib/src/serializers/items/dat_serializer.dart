@@ -26,7 +26,7 @@ class DatSerializer extends DiskSerializer<DatDocument> {
 
     // TODO: handle outfits, effects and distances
 
-    List<DatItem> items = [];
+    Map<int, DatItem> items = Map();
 
     for (int i = 0; i < itemsCount; i++) {
       bool stackable = false;
@@ -98,7 +98,7 @@ class DatSerializer extends DiskSerializer<DatDocument> {
         fluidContainer: fluidContainer,
         textures: textures,
       );
-      items.add(item);
+      items[item.id] = item;
       tracker.progress = (i + 1) / itemsCount;
     }
 
@@ -108,7 +108,7 @@ class DatSerializer extends DiskSerializer<DatDocument> {
 
 class DatDocument {
   final int signature;
-  final List<DatItem> items;
+  final Map<int, DatItem> items;
 
   DatDocument({required this.signature, required this.items});
 }

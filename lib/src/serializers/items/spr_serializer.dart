@@ -20,12 +20,12 @@ class SprSerializer extends DiskSerializer<SprDocument> {
     ReadBuffer spr = ReadBuffer(ByteData.view(bytes.buffer));
     int signature = spr.getUint32(endian: Endian.little);
     int spritesCount = spr.getUint16(endian: Endian.little);
-    List<Sprite> sprites = [];
+    Map<int, Sprite> sprites = Map();
     for (int i = 0; i < spritesCount; i++) {
       int offset = spr.getUint32(endian: Endian.little);
       if (offset != 0) {
         Sprite sprite = _deserializeSprite(bytes, offset, i + 1);
-        sprites.add(sprite);
+        sprites[sprite.id] = sprite;
         tracker.progress = (i + 1) / spritesCount;
       }
     }
@@ -69,7 +69,7 @@ class SprSerializer extends DiskSerializer<SprDocument> {
 
 class SprDocument {
   final int signature;
-  final List<Sprite> sprites;
+  final Map<int, Sprite> sprites;
 
   SprDocument({required this.signature, required this.sprites});
 }

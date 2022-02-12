@@ -6,6 +6,7 @@ import 'package:otstudio/src/screens/welcome/welcome.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(OTStudio());
   doWhenWindowReady(() {
     final Size initialSize = Size(500, 400);

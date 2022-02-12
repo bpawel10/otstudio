@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:otstudio/src/grid/grid_bloc.dart';
 import 'package:otstudio/src/grid/grid_cell_drag_targets.dart';
 import 'package:otstudio/src/grid/grid_tree.dart';
@@ -73,48 +72,49 @@ class GridCell extends StatelessWidget {
                   child: Row(
                     children: [
                       if (path.every((element) => element == 0))
-                        SizedBox(width: 70),
-                      ...cell.children.mapIndexed((int index, Node child) {
-                        Widget widget = (child as Leaf).value;
-                        return Draggable(
-                            data: GridCellDraggableData(path: [...path, index]),
-                            feedback: SizedBox(
-                                height: 28,
-                                child: Container(
-                                    padding: EdgeInsets.all(5),
-                                    // decoration: BoxDecoration(
-                                    //     color: Colors.grey.shade700),
-                                    child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Theme(
-                                            data: Theme.of(context),
-                                            child: Text(
-                                              widget.toString(),
-                                              //  textAlign: TextAlign.center,
-                                            ))))),
-                            child: SizedBox(
-                                height: 28,
-                                child: Container(
-                                    padding: EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                        border: Border(
-                                            bottom: BorderSide(
-                                                color: Theme.of(context)
-                                                    .primaryColor,
-                                                width: 2))),
-                                    // decoration: BoxDecoration(
-                                    //     color: Colors.grey.shade700),
-                                    child: Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          widget.toString(),
-                                          //  textAlign: TextAlign.center,
-                                        )))));
-                      }),
-                      IconButton(
-                          icon: Icon(Icons.add),
-                          onPressed: () =>
-                              grid.add(AddGridWidgetPressed(path: path))),
+                        // SizedBox(width: 70),
+                        ...cell.children.mapIndexed((int index, Node child) {
+                          Widget widget = (child as Leaf).value;
+                          return Draggable(
+                              data:
+                                  GridCellDraggableData(path: [...path, index]),
+                              feedback: SizedBox(
+                                  height: 28,
+                                  child: Container(
+                                      padding: EdgeInsets.all(5),
+                                      // decoration: BoxDecoration(
+                                      //     color: Colors.grey.shade700),
+                                      child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Theme(
+                                              data: Theme.of(context),
+                                              child: Text(
+                                                widget.toString(),
+                                                //  textAlign: TextAlign.center,
+                                              ))))),
+                              child: SizedBox(
+                                  height: 28,
+                                  child: Container(
+                                      padding: EdgeInsets.all(5),
+                                      decoration: BoxDecoration(
+                                          border: Border(
+                                              bottom: BorderSide(
+                                                  color: Theme.of(context)
+                                                      .primaryColor,
+                                                  width: 2))),
+                                      // decoration: BoxDecoration(
+                                      //     color: Colors.grey.shade700),
+                                      child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            widget.toString(),
+                                            //  textAlign: TextAlign.center,
+                                          )))));
+                        }),
+                      // IconButton(
+                      //     icon: Icon(Icons.add),
+                      //     onPressed: () =>
+                      //         grid.add(AddGridWidgetPressed(path: path))),
                     ],
                   )),
               Expanded(
