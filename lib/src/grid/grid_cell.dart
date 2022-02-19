@@ -80,36 +80,77 @@ class GridCell extends StatelessWidget {
                                   GridCellDraggableData(path: [...path, index]),
                               feedback: SizedBox(
                                   height: 28,
-                                  child: Container(
-                                      padding: EdgeInsets.all(5),
-                                      // decoration: BoxDecoration(
-                                      //     color: Colors.grey.shade700),
-                                      child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Theme(
-                                              data: Theme.of(context),
+                                  child: Material(
+                                      child: Container(
+                                          padding: EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                              border: Border(
+                                                  bottom: BorderSide(
+                                                      color: Theme.of(context)
+                                                          .primaryColor,
+                                                      width: 2))),
+                                          // decoration: BoxDecoration(
+                                          //     color: Colors.grey.shade700),
+                                          child: Align(
+                                              alignment: Alignment.centerLeft,
                                               child: Text(
                                                 widget.toString(),
                                                 //  textAlign: TextAlign.center,
                                               ))))),
                               child: SizedBox(
-                                  height: 28,
-                                  child: Container(
-                                      padding: EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                          border: Border(
-                                              bottom: BorderSide(
-                                                  color: Theme.of(context)
-                                                      .primaryColor,
-                                                  width: 2))),
-                                      // decoration: BoxDecoration(
-                                      //     color: Colors.grey.shade700),
-                                      child: Align(
-                                          alignment: Alignment.centerLeft,
-                                          child: Text(
-                                            widget.toString(),
-                                            //  textAlign: TextAlign.center,
-                                          )))));
+                                  height: 35,
+                                  child: Column(children: [
+                                    SizedBox(height: 4),
+                                    Expanded(
+                                        child: Row(children: [
+                                      Container(
+                                          width: 10,
+                                          color: Theme.of(context).primaryColor,
+                                          child: Container(
+                                              decoration: BoxDecoration(
+                                                  color: Colors.grey.shade900,
+                                                  borderRadius:
+                                                      BorderRadius.only(
+                                                          bottomRight:
+                                                              Radius.circular(
+                                                                  10))))),
+                                      Container(
+                                          padding: EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .primaryColor,
+                                              borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(10),
+                                                  topRight:
+                                                      Radius.circular(10))),
+                                          // decoration: BoxDecoration(
+                                          //     color: Colors.grey.shade500,
+                                          //     border: Border(
+                                          //         bottom: BorderSide(
+                                          //             color: Theme.of(context)
+                                          //                 .primaryColor,
+                                          //             width: 2))),
+                                          // decoration: BoxDecoration(
+                                          //     color: Colors.grey.shade700),
+                                          child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                widget.toString(),
+                                                //  textAlign: TextAlign.center,
+                                              ))),
+                                      Container(
+                                          width: 10,
+                                          color: Theme.of(context).primaryColor,
+                                          child: Container(
+                                              decoration: BoxDecoration(
+                                                  color: Colors.grey.shade900,
+                                                  borderRadius:
+                                                      BorderRadius.only(
+                                                          bottomLeft:
+                                                              Radius.circular(
+                                                                  10))))),
+                                    ]))
+                                  ])));
                         }),
                       // IconButton(
                       //     icon: Icon(Icons.add),

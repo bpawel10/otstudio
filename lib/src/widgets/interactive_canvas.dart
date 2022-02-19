@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
 import 'package:otstudio/src/screens/editor/modules/map/map_painter.dart';
+import 'package:otstudio/src/models/item.dart';
 
 class InteractiveCanvas extends StatefulWidget {
   final Size size;
@@ -8,13 +9,15 @@ class InteractiveCanvas extends StatefulWidget {
   double scale;
   final Offset mouse;
   final MapPainter painter;
+  final int? selectedItemId;
 
   InteractiveCanvas(
       {required this.size,
       this.offset = Offset.zero,
       this.scale = 1, // 0.5, // 1,
       required this.mouse,
-      required this.painter}) {
+      required this.painter,
+      this.selectedItemId}) {
     // this.scale = ui.window.devicePixelRatio;
   }
 
@@ -33,7 +36,10 @@ class _InteractiveCanvasState extends State<InteractiveCanvas> {
     painter = _InteractivePainter(
         painter: widget.painter,
         repaint: ValueNotifier(InteractiveCanvasState2(
-            offset: widget.offset, scale: widget.scale)));
+            offset: widget.offset,
+            scale: widget.scale,
+            mouse: mouse,
+            selectedItemId: widget.selectedItemId)));
   }
 
   @override
@@ -115,6 +121,10 @@ class _InteractivePainter extends MapPainter {
     // print('painter.paint');
     // painter.paintAtlas(canvas, size / scale, offset * scale);
     painter.paintTiles(canvas, size / scale, offset * scale);
+    if (repaint.value.selectedItemId != null) {
+      painter.paintSelectedItem(
+          canvas, repaint.value.selectedItemId!, repaint.value.mouse);
+    }
     // print('painter painted');
   }
 
@@ -125,8 +135,14 @@ class _InteractivePainter extends MapPainter {
 class InteractiveCanvasState2 {
   Offset offset;
   double scale;
+  Offset mouse;
+  int? selectedItemId;
 
-  InteractiveCanvasState2({required this.offset, required this.scale});
+  InteractiveCanvasState2(
+      {required this.offset,
+      required this.scale,
+      required this.mouse,
+      this.selectedItemId});
 }
 
 class _InteractiveCanvasStateWidget extends StatelessWidget {

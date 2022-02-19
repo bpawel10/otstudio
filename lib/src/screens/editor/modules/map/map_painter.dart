@@ -14,6 +14,12 @@ class MapPainter extends CustomPainter {
   MapPainter({required this.project, Listenable? repaint})
       : super(repaint: repaint);
 
+  Offset offsetToTileOffset(Offset offset) {
+    double dx = Sprite.SIZE * (offset.dx / Sprite.SIZE).floorToDouble();
+    double dy = Sprite.SIZE * (offset.dy / Sprite.SIZE).floorToDouble();
+    return Offset(dx, dy);
+  }
+
   Offset positionToTileOffset(Position position) {
     // double tileSize = getTileSize();
     double dx = (position.x * Sprite.SIZE).toDouble(); // - offset.dx;
@@ -69,7 +75,7 @@ class MapPainter extends CustomPainter {
         height: visiblePositionRect.height);
 
     Paint paint = Paint();
-    Map<Position, Tile> tiles = project.map.map.tiles;
+    Map<String, Tile> tiles = project.map.map.tiles;
 
     for (int x = renderablePositionRect.left.toInt();
         x < renderablePositionRect.right;
@@ -77,12 +83,18 @@ class MapPainter extends CustomPainter {
       for (int y = renderablePositionRect.top.toInt();
           y < renderablePositionRect.bottom;
           y++) {
-        Tile? tile = tiles[Position(x, y, 7)];
+        Tile? tile = tiles[Position(x, y, 7).toString()];
 
         if (tile != null) {
           Offset tileOffset = positionToTileOffset(tile.position);
-          tile.items.forEach((item) {
-            paintItem(canvas, paint, tileOffset, item);
+          tile.items.forEach((Item item) {
+            paintItem(
+                canvas,
+                paint,
+                tileOffset - project.assets.items.items[item.id]!.drawOffset,
+                item);
+            tileOffset =
+                tileOffset - project.assets.items.items[item.id]!.heightOffset;
           });
         }
       }
@@ -125,7 +137,7 @@ class MapPainter extends CustomPainter {
             y < renderablePositionRect.bottom;
             y++) {
           // print('x $x y $y');
-          Tile? tile = project.map.map.tiles[Position(x, y, z)];
+          Tile? tile = project.map.map.tiles[Position(x, y, z).toString()];
 
           if (tile != null) {
             tile.items.forEach((item) {
@@ -186,6 +198,12 @@ class MapPainter extends CustomPainter {
 
     renderStopwatch.stop();
     print('rendered atlas in ${renderStopwatch.elapsedMilliseconds} ms');
+  }
+
+  void paintSelectedItem(Canvas canvas, int selectedItemId, Offset mouse) {
+    Item item = project.assets.items.items[selectedItemId]!;
+    Offset mouseTileOffset = offsetToTileOffset(mouse);
+    paintItem(canvas, Paint(), mouseTileOffset, item, opacity: 0.5);
   }
 
   @override

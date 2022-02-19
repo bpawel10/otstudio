@@ -18,14 +18,16 @@ class MapView extends StatelessWidget {
           builder: (BuildContext context, state) {
         painter = MapPainter(project: state.project);
         return Container(
-          color: Colors.black,
-          child: InteractiveCanvas(
-            painter: painter,
-            size: Size(state.project.map.map.width.toDouble() * Sprite.SIZE,
-                state.project.map.map.height.toDouble() * Sprite.SIZE),
-            offset: offset,
-            mouse: mouse ?? Offset.zero,
-          ),
-        );
+            color: Colors.black,
+            child: RepaintBoundary(
+              child: InteractiveCanvas(
+                painter: painter,
+                size: Size(state.project.map.map.width.toDouble() * Sprite.SIZE,
+                    state.project.map.map.height.toDouble() * Sprite.SIZE),
+                offset: offset,
+                mouse: mouse ?? Offset.zero,
+                selectedItemId: state.project.map.selectedItemId,
+              ),
+            ));
       });
 }

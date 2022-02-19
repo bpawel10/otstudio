@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ class Item {
   final bool stackable;
   final bool splash;
   final bool fluidContainer;
+  final Offset drawOffset;
+  final Offset heightOffset;
   final List<Item> children;
   // final int spriteId;
   // final Uint8List bitmap;
@@ -29,6 +32,8 @@ class Item {
     this.stackable = false,
     this.splash = false,
     this.fluidContainer = false,
+    this.drawOffset = Offset.zero,
+    this.heightOffset = Offset.zero,
     this.children = const [],
     this.textures = const [],
     // this.spriteId,
@@ -38,4 +43,12 @@ class Item {
     // this.sprites,
     // this.images,
   });
+
+  // TODO: use entity with attributes instead in map and use item only in items
+  dynamic toJson() => children.isEmpty
+      ? id
+      : {
+          'id': id,
+          'items': children.map((child) => child.toJson()).toList(),
+        };
 }

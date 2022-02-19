@@ -1,9 +1,8 @@
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:otstudio/src/models/sprite.dart';
 import 'package:otstudio/src/models/texture.dart';
-import 'package:otstudio/src/models/tile.dart';
-import 'package:otstudio/src/models/atlas.dart';
 import 'package:path/path.dart';
 import 'package:xml/xml.dart';
 import 'package:collection/collection.dart';
@@ -42,7 +41,6 @@ class TfsProjectSource extends Source<Project> {
     ReceivePort xmlPort = ReceivePort();
     ReceivePort otbPort = ReceivePort();
     ReceivePort otbmPort = ReceivePort();
-    ReceivePort mapIdsPort = ReceivePort();
 
     datPort.listen((progress) {
       datProgress = progress;
@@ -57,37 +55,39 @@ class TfsProjectSource extends Source<Project> {
       updateProgress(tracker);
     });
     otbPort.listen((progress) {
-      print('otbProgress $progress');
       otbProgress = progress;
       updateProgress(tracker);
     });
     otbmPort.listen((progress) {
-      print('otbmProgress $progress');
       otbmProgress = progress;
       updateProgress(tracker);
     });
-    mapIdsPort.listen((progress) {
-      print('mapIdsProgress $progress');
-      mapIdsProgress = progress;
-      updateProgress(tracker);
-    });
 
-    DatDocument dat = await DatSerializer().deserialize(
+    DatDocument dat = await compute(
+        DatSerializer().deserialize,
         ProgressTracker<DiskSerializerDeserializePayload>(
             DiskSerializerDeserializePayload(join(projectPath, 'Tibia.dat')),
             datPort.sendPort));
-    SprDocument spr = await SprSerializer().deserialize(
+    SprDocument spr = await compute(
+        SprSerializer().deserialize,
         ProgressTracker<DiskSerializerDeserializePayload>(
             DiskSerializerDeserializePayload(join(projectPath, 'Tibia.spr')),
             sprPort.sendPort));
-    XmlDocument xml = await XmlSerializer().deserialize(
+    XmlDocument xml = await compute(
+        XmlSerializer().deserialize,
         ProgressTracker<DiskSerializerDeserializePayload>(
             DiskSerializerDeserializePayload(join(projectPath, 'items.xml')),
             xmlPort.sendPort));
-    OtbDocument otb = await OtbSerializer().deserialize(
+    OtbDocument otb = await compute(
+        OtbSerializer().deserialize,
         ProgressTracker<DiskSerializerDeserializePayload>(
             DiskSerializerDeserializePayload(join(projectPath, 'items.otb')),
             otbPort.sendPort));
+    AreaMap map = await compute(
+        OtbmSerializer(dat: dat, otb: otb).deserialize,
+        ProgressTracker<DiskSerializerDeserializePayload>(
+            DiskSerializerDeserializePayload(join(projectPath, 'map.otbm')),
+            otbmPort.sendPort));
 
     Map<int, Item> items = Map();
 
@@ -95,30 +95,23 @@ class TfsProjectSource extends Source<Project> {
       items[datItem.id] = Item(
           id: datItem.id,
           name: datItem.id.toString(),
+          ground: datItem.ground,
           stackable: datItem.stackable,
           splash: datItem.splash,
           fluidContainer: datItem.fluidContainer,
+          drawOffset: datItem.drawOffset,
+          heightOffset: datItem.heightOffset,
           textures: getItemTextures(datItem.textures, spr.sprites));
     });
 
     Assets assets = Assets(items: Items(items: items));
-    AreaMap map = await OtbmSerializer(items).deserialize(
-        ProgressTracker<DiskSerializerDeserializePayload>(
-            DiskSerializerDeserializePayload(join(projectPath, 'map.otbm')),
-            otbmPort.sendPort));
 
-    AreaMap mapWithProperIds =
-        mapIds(map, otb, ProgressTracker<void>(null, mapIdsPort.sendPort));
-
-    print('end');
-
-    return Project(assets: assets, map: modelMap.Map(map: mapWithProperIds));
+    return Project(
+        path: projectPath, assets: assets, map: modelMap.Map(map: map));
   }
 
   List<Texture> getItemTextures(
       DatTextures datTextures, Map<int, Sprite> sprites) {
-    // List<int> spritesIds = datTextures.sprites.reversed.toList();
-
     int spriteIndex = 0;
 
     List<Texture> textures = [];
@@ -167,28 +160,6 @@ class TfsProjectSource extends Source<Project> {
     return textures;
   }
 
-  AreaMap mapIds(AreaMap map, OtbDocument otb, ProgressTracker tracker) {
-    AreaMap mapWithProperIds = AreaMap(width: map.width, height: map.height);
-    Map<int, OtbItem> otbServerIdMap = Map.fromIterable(otb.items,
-        key: (item) => item.serverId, value: (item) => item);
-    map.tiles.values.toList().asMap().forEach((int index, Tile tile) {
-      tile.items.forEach((Item item) {
-        OtbItem otbItem = otbServerIdMap[item.id]!;
-        Item itemWithProperId = Item(
-            id: otbItem.clientId,
-            name: item.name,
-            stackable: item.stackable,
-            splash: item.splash,
-            fluidContainer: item.fluidContainer,
-            textures: item.textures);
-        mapWithProperIds.addItem(tile.position, itemWithProperId);
-      });
-      // print('tracker.progress');
-      tracker.progress = (index + 1) / map.tiles.length;
-    });
-    return mapWithProperIds;
-  }
-
   void updateProgress(ProgressTracker tracker) {
     tracker.progress = [
       datProgress,
@@ -196,7 +167,6 @@ class TfsProjectSource extends Source<Project> {
       xmlProgress,
       otbProgress,
       otbmProgress,
-      mapIdsProgress,
     ].average;
   }
 }

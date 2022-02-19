@@ -9,6 +9,7 @@ import 'package:otstudio/src/grid/tree.dart';
 import 'package:otstudio/src/screens/editor/modules/map/map_items.dart';
 import 'package:otstudio/src/screens/editor/modules/map/map_module.dart';
 import 'package:otstudio/src/screens/editor/modules/map/map_view.dart';
+import 'package:otstudio/src/screens/editor/with_dialogs.dart';
 
 class Editor extends StatelessWidget {
   final Project project;
@@ -24,7 +25,8 @@ class Editor extends StatelessWidget {
       body: BlocProvider<ProjectBloc>(
           create: (BuildContext context) =>
               ProjectBloc(ProjectState(project: project)),
-          child: Row(children: [
+          child: WithDialogs(
+              child: Row(children: [
             MapItems(),
             // Expanded(child: MapView()),
             Expanded(
@@ -32,5 +34,5 @@ class Editor extends StatelessWidget {
                     tree: GridTree(Composite(
                         type: GridCellType.cell,
                         children: [Leaf(value: MapView())])))),
-          ])));
+          ]))));
 }

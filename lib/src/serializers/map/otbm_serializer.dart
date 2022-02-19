@@ -6,14 +6,17 @@ import 'package:otstudio/src/models/item.dart';
 import 'package:otstudio/src/models/position.dart';
 import 'package:otstudio/src/progress_tracker.dart';
 import 'package:otstudio/src/serializers/disk_serializer.dart';
+import 'package:otstudio/src/serializers/items/dat_serializer.dart';
+import 'package:otstudio/src/serializers/items/otb_serializer.dart';
 
 class OtbmSerializer extends DiskSerializer<AreaMap> {
   static const FLOORS = 16;
   static const TILE_AREA_TILES = 256 * 256;
 
-  Map<int, Item> items;
+  DatDocument dat;
+  OtbDocument otb;
 
-  OtbmSerializer(this.items);
+  OtbmSerializer({required this.dat, required this.otb});
 
   @override
   Future<void> serialize(
@@ -29,7 +32,7 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
     print('bytes length ${bytes.length}');
     // ReadBuffer otbm = ReadBuffer(ByteData.view(bytes.buffer));
 
-    _OtbmReader otbm = _OtbmReader(bytes);
+    _OtbmReader otbm = _OtbmReader(bytes, dat, otb);
 
     // String identifier = String.fromCharCodes(otbm.getUint8List(4));
     // print('identifier $identifier');
@@ -123,7 +126,7 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
                             int tileFlags = otbm.getUint32();
                             break;
                           case _OtbmAttribute.item:
-                            groundId = otbm.getUint16();
+                            groundId = otbm.getItemId();
                             break;
                         }
 
@@ -142,8 +145,7 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
                           int houseId = otbm.getUint32();
                         }
 
-                        Item? item =
-                            otbm.getItem(byte3, position, version, items);
+                        Item? item = otbm.getItem(byte3, position, version);
 
                         if (item != null) {
                           map.addItem(position, item);
@@ -172,9 +174,12 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
                   // print(
                   //     'tileAreas $tileAreas TOTAL_TILE_AREAS $TOTAL_TILE_AREAS');
                   // tracker.progress = tileAreas / TOTAL_TILE_AREAS;
+                  // print(
+                  //     'otbm serializer set tracker progress ${otbm.getProgress()}');
 
-                  tracker.progress = otbm
-                      .getProgress(); // offsetX * offsetY / TOTAL_TILES_PER_FLOOR;
+                  tracker.progress = otbm.getProgress();
+
+                  // offsetX * offsetY / TOTAL_TILES_PER_FLOOR;
                 }
 
                 byte1 = otbm.getUint8();
@@ -223,7 +228,14 @@ class _OtbmReader {
   late ReadBuffer reader;
   int pos = 0;
 
-  _OtbmReader(Uint8List bytes) {
+  DatDocument dat;
+  OtbDocument otb;
+
+  _OtbmReader(
+    Uint8List bytes,
+    this.dat,
+    this.otb,
+  ) {
     reader = ReadBuffer(ByteData.view(bytes.buffer));
   }
 
@@ -354,12 +366,11 @@ class _OtbmReader {
     return string;
   }
 
-  Item? getItem(
-      int byte, Position position, int version, Map<int, Item> items) {
+  Item? getItem(int byte, Position position, int version) {
     if (byte == _OtbmSpecialCharacter.start) {
       if (getUint8() == _OtbmNodeType.item) {
         // print('item node');
-        int itemId = getUint16();
+        int itemId = getItemId();
         // print('itemId $itemId');
         int? subtype;
 
@@ -370,15 +381,15 @@ class _OtbmReader {
         while (byte2 != _OtbmSpecialCharacter.end) {
           switch (byte2) {
             case _OtbmSpecialCharacter.start:
-              Item? child = getItem(byte2, position, version, items);
+              Item? child = getItem(byte2, position, version);
               if (child != null) {
                 children.add(child);
               }
               break;
             case _OtbmAttribute.item:
-              itemId = getUint16();
+              itemId = getItemId();
               if (version == 1) {
-                Item? item = items[itemId];
+                DatItem? item = dat.items[itemId];
                 if (item != null &&
                     (item.stackable || item.splash || item.fluidContainer)) {
                   subtype = getUint8();
@@ -401,6 +412,12 @@ class _OtbmReader {
     }
 
     return null;
+  }
+
+  int getItemId() {
+    int serverId = getUint16();
+    OtbItem otbItem = otb.items[serverId]!;
+    return otbItem.clientId;
   }
 }
 

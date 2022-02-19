@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:otstudio/src/screens/project_configurator/project_loader.dart';
 import 'package:otstudio/src/screens/project_configurator/sources/tfs_project_source.dart';
 import 'package:otstudio/src/screens/welcome/welcome_scaffold.dart';
+import 'package:otstudio/src/utils/file_picker.dart';
 
 class ProjectPicker extends StatefulWidget {
   ProjectPicker();
@@ -22,6 +22,14 @@ class _State extends State<ProjectPicker> {
     setState(() => dragAndDropErrorMessage = message);
     Future.delayed(Duration(seconds: 2),
         () => setState(() => dragAndDropErrorMessage = null));
+  }
+
+  Future<void> loadProject(String projectPath) async {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (BuildContext context) => ProjectLoader(
+                projectSource: TfsProjectSource(projectPath: projectPath))));
   }
 
   @override
@@ -57,19 +65,13 @@ class _State extends State<ProjectPicker> {
                           return showDragAndDropErrorMessage(
                               'Too many elements');
                         }
-                        XFile file = details.files[0];
+                        String projectPath = details.files[0].path;
                         bool projectDirectoryExists =
-                            await Directory(file.path).exists();
+                            await Directory(projectPath).exists();
                         if (!projectDirectoryExists) {
                           return showDragAndDropErrorMessage('Not a directory');
                         }
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    ProjectLoader(
-                                        projectSource: TfsProjectSource(
-                                            projectPath: file.path))));
+                        await loadProject(projectPath);
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -112,9 +114,9 @@ class _State extends State<ProjectPicker> {
                                         ),
                                         SizedBox(height: 8),
                                         ElevatedButton(
-                                          child: Text('Browse'),
-                                          onPressed: () {},
-                                        ),
+                                            child: Text('Browse'),
+                                            onPressed: () => FilePicker()
+                                                .pickDirectory(loadProject)),
                                         if (dragAndDropErrorMessage != null)
                                           Text(
                                             dragAndDropErrorMessage!,

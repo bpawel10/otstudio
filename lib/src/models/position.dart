@@ -16,4 +16,7 @@ class Position {
 
   @override
   int get hashCode => hashValues(x, y, z);
+
+  @override
+  String toString() => [x, y, z].join(',');
 }

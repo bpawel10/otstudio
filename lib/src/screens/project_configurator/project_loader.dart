@@ -22,7 +22,7 @@ class ProjectLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => WelcomeScaffold(
       child: Loader<void, Project>(
-          label: 'Loading project',
+          label: Text('Loading project'),
           future: projectSource.load,
           callback: (Project project) async {
             Map<int, Item> items = Map();
@@ -42,14 +42,18 @@ class ProjectLoader extends StatelessWidget {
               items[item.id] = Item(
                   id: item.id,
                   name: item.name,
+                  ground: item.ground,
                   stackable: item.stackable,
                   splash: item.splash,
                   fluidContainer: item.fluidContainer,
+                  drawOffset: item.drawOffset,
+                  heightOffset: item.heightOffset,
                   textures: texturesWithImage);
             });
             Atlas atlas = await getAtlas(items);
 
             Project projectWithTexturesWithImages = Project(
+                path: project.path,
                 assets: Assets(items: Items(items: items, atlas: atlas)),
                 map: project.map);
             Navigator.pushReplacement(

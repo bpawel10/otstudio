@@ -36,7 +36,7 @@ class OtbSerializer extends DiskSerializer<OtbDocument> {
     }
 
     List<_OtbNode> itemNodes = otb.children;
-    List<OtbItem> items = [];
+    Map<int, OtbItem> items = Map();
 
     itemNodes.asMap().forEach((int index, _OtbNode itemNode) {
       int group = itemNode.getUint8();
@@ -122,7 +122,7 @@ class OtbSerializer extends DiskSerializer<OtbDocument> {
         // splash: splash,
         // fluidContainer: fluidContainer);
       );
-      items.add(item);
+      items[item.serverId] = item;
       tracker.progress = (index + 1) / itemNodes.length;
     });
 
@@ -138,7 +138,7 @@ class OtbDocument {
   final int majorVersion;
   final int minorVersion;
   final int buildVersion;
-  final List<OtbItem> items;
+  final Map<int, OtbItem> items;
 
   OtbDocument(
       {required this.majorVersion,
