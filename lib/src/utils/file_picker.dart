@@ -7,7 +7,7 @@ class FilePicker {
 
   pickFile(Function(String) callback) async {
     pick((List<String> files) {
-      callback(files[0]);
+      callback(files.first);
     });
   }
 

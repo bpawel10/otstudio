@@ -65,7 +65,7 @@ class _State extends State<ProjectPicker> {
                           return showDragAndDropErrorMessage(
                               'Too many elements');
                         }
-                        String projectPath = details.files[0].path;
+                        String projectPath = details.files.first.path;
                         bool projectDirectoryExists =
                             await Directory(projectPath).exists();
                         if (!projectDirectoryExists) {

@@ -82,16 +82,16 @@ class ProjectLoader extends StatelessWidget {
     int maxHeight = 0;
 
     items2.forEach((item) {
-      maxWidth = max(maxWidth, item.textures[0].width.toInt());
-      maxHeight = max(maxHeight, item.textures[0].height.toInt());
+      maxWidth = max(maxWidth, item.textures.first.width.toInt());
+      maxHeight = max(maxHeight, item.textures.first.height.toInt());
     });
 
     int atlasWidth = atlasSize * maxWidth;
     int atlasHeight = atlasSize * maxHeight;
 
     // items2.forEach((item) {
-    //   atlasWidth += item.textures[0].width.toInt();
-    //   atlasHeight = max(atlasHeight, item.textures[0].height.toInt());
+    //   atlasWidth += item.textures.first.width.toInt();
+    //   atlasHeight = max(atlasHeight, item.textures.first.height.toInt());
     // });
 
     Map<int, ui.Rect> rects = Map();
@@ -106,7 +106,7 @@ class ProjectLoader extends StatelessWidget {
     items2.asMap().forEach((index, item) {
       // print('atlasPos $atlasPos');
 
-      modelTexture.Texture texture = item.textures[0];
+      modelTexture.Texture texture = item.textures.first;
       // ByteData? byteData = await texture.bitmap
 
       img.Image textureImage = img.Image.fromBytes(

@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:otstudio/src/models/area_map.dart';
 import 'package:otstudio/src/models/sprite.dart';
 import 'package:otstudio/src/models/tile.dart';
 import 'package:otstudio/src/models/position.dart';
@@ -10,36 +9,42 @@ import 'package:otstudio/src/models/project.dart';
 
 class MapPainter extends CustomPainter {
   final Project project;
+  final Offset offset;
+  final Offset mouse;
 
-  MapPainter({required this.project, Listenable? repaint})
-      : super(repaint: repaint);
+  MapPainter({
+    required this.project,
+    this.offset = Offset.zero,
+    this.mouse = Offset.zero,
+  });
 
-  Offset offsetToTileOffset(Offset offset) {
+  static Offset offsetToTileOffset(Offset offset) {
     double dx = Sprite.SIZE * (offset.dx / Sprite.SIZE).floorToDouble();
     double dy = Sprite.SIZE * (offset.dy / Sprite.SIZE).floorToDouble();
     return Offset(dx, dy);
   }
 
-  Offset positionToTileOffset(Position position) {
-    // double tileSize = getTileSize();
-    double dx = (position.x * Sprite.SIZE).toDouble(); // - offset.dx;
-    double dy = (position.y * Sprite.SIZE).toDouble(); // -offset.dx;
+  static Offset positionToTileOffset(Position position) {
+    double dx = (position.x * Sprite.SIZE).toDouble();
+    double dy = (position.y * Sprite.SIZE).toDouble();
     return Offset(dx, dy);
   }
 
-  Rect tileRectToPositionRect(Rect tileRect) {
-    // print('tileRect $tileRect');
-    return Rect.fromLTRB(
-        (tileRect.left / Sprite.SIZE).floor().toDouble(),
-        (tileRect.top / Sprite.SIZE).floor().toDouble(),
-        (tileRect.right / Sprite.SIZE).ceil().toDouble(),
-        (tileRect.bottom / Sprite.SIZE).ceil().toDouble());
-  }
+  static Position offsetToPosition(Offset offset, int floor) => Position(
+      (offset.dx / Sprite.SIZE).floor(),
+      (offset.dy / Sprite.SIZE).floor(),
+      floor);
+
+  static Rect tileRectToPositionRect(Rect tileRect) => Rect.fromLTRB(
+      (tileRect.left / Sprite.SIZE).floor().toDouble(),
+      (tileRect.top / Sprite.SIZE).floor().toDouble(),
+      (tileRect.right / Sprite.SIZE).ceil().toDouble(),
+      (tileRect.bottom / Sprite.SIZE).ceil().toDouble());
 
   void paintItem(Canvas canvas, Paint paint, Offset offset, Item item,
       {double opacity = 1.0}) {
     modelTexture.Texture? texture =
-        project.assets.items.items[item.id]?.textures[0];
+        project.assets.items.items[item.id]?.textures.first;
 
     if (texture != null) {
       Rect rect = texture.rect.translate(offset.dx, offset.dy);
@@ -52,22 +57,11 @@ class MapPainter extends CustomPainter {
     }
   }
 
-  void paintTiles(Canvas canvas, Size size, ui.Offset offset) {
+  void paintTiles(Canvas canvas, Size size) {
     Stopwatch renderStopwatch = new Stopwatch()..start();
-    // Rect visiblePositionRect = tileRectToPositionRect(
-    //     positionToTileOffset(Position(32369, 32241, 7)) & Size(1536.0, 1067.0));
-    // Rect renderablePositionRect = Rect.fromCenter(
-    //     center: visiblePositionRect.center,
-    //     width: visiblePositionRect.width + 20,
-    //     height: visiblePositionRect.height + 20);
 
     Rect visiblePositionRect = tileRectToPositionRect(
         offset & Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE));
-
-    // print('visiblePositionRect $visiblePositionRect');
-
-    // print('visiblePositionRect $visiblePositionRect');
-    // print('visiblePositionSize ${visiblePositionRect.size}');
 
     Rect renderablePositionRect = Rect.fromCenter(
         center: visiblePositionRect.center,
@@ -106,17 +100,10 @@ class MapPainter extends CustomPainter {
 
   void paintAtlas(Canvas canvas, Size size, ui.Offset offset) {
     Stopwatch renderStopwatch = new Stopwatch()..start();
-    // Rect visiblePositionRect = tileRectToPositionRect(
-    //     Offset(1035808.0, 1031712.0) & Size(1536.0, 1067.0));
 
     Rect visiblePositionRect = tileRectToPositionRect(
         Offset(offset.dx + Sprite.SIZE, offset.dy + Sprite.SIZE) &
             Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE));
-
-    // print('visiblePositionRect $visiblePositionRect');
-
-    // print('visiblePositionRect $visiblePositionRect');
-    // print('visiblePositionSize ${visiblePositionRect.size}');
 
     Rect renderablePositionRect = Rect.fromCenter(
         center: visiblePositionRect.center,
@@ -132,30 +119,20 @@ class MapPainter extends CustomPainter {
       for (int x = renderablePositionRect.left.toInt();
           x < renderablePositionRect.right;
           x++) {
-        //  int yy = 0;
         for (int y = renderablePositionRect.top.toInt();
             y < renderablePositionRect.bottom;
             y++) {
-          // print('x $x y $y');
           Tile? tile = project.map.map.tiles[Position(x, y, z).toString()];
 
           if (tile != null) {
             tile.items.forEach((item) {
               Offset tileOffset = positionToTileOffset(tile.position);
 
-              // print('atlas rect for item ${item.id} $rect');
-              // if (rect != null) {
               modelTexture.Texture? texture =
-                  project.assets.items.items[item.id]?.textures[0];
+                  project.assets.items.items[item.id]?.textures.first;
               ui.Rect? rect = project.assets.items.atlas!.rects[item.id];
 
               if (texture != null && rect != null) {
-                // if (x < renderablePositionRect.right + 5 &&
-                //     y < renderablePositionRect.bottom + 5) {
-                //   print('rect $rect');
-                //   print('translateX ${tileOffset.dx - texture.width}');
-                //   print('translateY ${tileOffset.dy - texture.height}');
-                // }
                 transforms.add(RSTransform.fromComponents(
                     rotation: 0,
                     scale: 1,
@@ -170,10 +147,6 @@ class MapPainter extends CustomPainter {
                             (z - minZ) * Sprite.SIZE)
                         .roundToDouble()));
                 rects.add(rect);
-                // rects.add(Offset(0, 0) &
-                //     Size(texture.width.toDouble(),
-                //         texture.height.toDouble())); //rect);
-                // }
               }
             });
           }
@@ -191,7 +164,7 @@ class MapPainter extends CustomPainter {
       transforms,
       rects,
       [],
-      null, // BlendMode.srcATop,
+      null,
       null,
       paint,
     );
@@ -203,15 +176,24 @@ class MapPainter extends CustomPainter {
   void paintSelectedItem(Canvas canvas, int selectedItemId, Offset mouse) {
     Item item = project.assets.items.items[selectedItemId]!;
     Offset mouseTileOffset = offsetToTileOffset(mouse);
+    // print('mouseTileOffset ${mouseTileOffset}');
     paintItem(canvas, Paint(), mouseTileOffset, item, opacity: 0.5);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    // paintTiles(canvas, size);
-    paintAtlas(canvas, size, Offset.zero);
+    canvas.translate(-offset.dx, -offset.dy);
+    canvas.clipRect(offset & size);
+    paintTiles(canvas, size);
+    if (project.map.selectedItemId != null) {
+      paintSelectedItem(canvas, project.map.selectedItemId!, offset + mouse);
+    }
+    // paintAtlas(canvas, size, Offset.zero);
   }
 
   @override
-  bool shouldRepaint(MapPainter old) => false;
+  bool shouldRepaint(MapPainter old) =>
+      old.offset != offset ||
+      offsetToPosition(old.offset + old.mouse, 0) !=
+          offsetToPosition(offset + mouse, 0);
 }

@@ -57,7 +57,7 @@ class MapItem extends StatelessWidget {
     return GestureDetector(
         onTap: () => context
             .read<ProjectBloc>()
-            .add(SelectedItemProjectEvent(id: item.id)),
+            .add(SelectItemProjectEvent(id: item.id)),
         child: MouseRegion(
             cursor: SystemMouseCursors.click,
             child: Container(

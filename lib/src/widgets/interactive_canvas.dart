@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:otstudio/src/screens/editor/modules/map/map_painter.dart';
+import 'package:otstudio/src/screens/editor/modules/map/map_painter_old.dart';
 import 'package:otstudio/src/models/item.dart';
 
 class InteractiveCanvas extends StatefulWidget {
@@ -19,6 +19,7 @@ class InteractiveCanvas extends StatefulWidget {
       required this.painter,
       this.selectedItemId}) {
     // this.scale = ui.window.devicePixelRatio;
+    print('interactive canvas selected item id $selectedItemId');
   }
 
   @override
@@ -31,6 +32,7 @@ class _InteractiveCanvasState extends State<InteractiveCanvas> {
 
   @override
   void initState() {
+    print('widget.selectedItemId ${widget.selectedItemId}');
     super.initState();
     mouse = widget.mouse;
     painter = _InteractivePainter(
@@ -44,8 +46,7 @@ class _InteractiveCanvasState extends State<InteractiveCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-        child: Column(
+    return Column(
       children: [
         Expanded(child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
@@ -78,9 +79,12 @@ class _InteractiveCanvasState extends State<InteractiveCanvas> {
 
               child: MouseRegion(
                   onHover: (event) {
-                    // setState(() {
-                    mouse = event.localPosition;
-                    // });
+                    if (widget.selectedItemId != null) {
+                      setState(() {
+                        // print('setState mouse ${event.localPosition}');
+                        painter.repaint.value.mouse = event.localPosition;
+                      });
+                    }
                   },
                   child: CustomPaint(
                       isComplex: true,
@@ -92,7 +96,7 @@ class _InteractiveCanvasState extends State<InteractiveCanvas> {
         //     child: _InteractiveCanvasStateWidget(
         //         offset: widget.offset, mouse: mouse)),
       ],
-    ));
+    );
   }
 }
 
@@ -121,9 +125,10 @@ class _InteractivePainter extends MapPainter {
     // print('painter.paint');
     // painter.paintAtlas(canvas, size / scale, offset * scale);
     painter.paintTiles(canvas, size / scale, offset * scale);
+    // print('selectedItemId ${repaint.value.selectedItemId} offset $offset mouse ${repaint.value.mouse}');
     if (repaint.value.selectedItemId != null) {
       painter.paintSelectedItem(
-          canvas, repaint.value.selectedItemId!, repaint.value.mouse);
+          canvas, repaint.value.selectedItemId!, offset + repaint.value.mouse);
     }
     // print('painter painted');
   }

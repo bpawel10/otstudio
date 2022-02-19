@@ -45,6 +45,8 @@ class AreaMap {
     if (tile != null) {
       if (!item.ground || !tile.items.any((item) => item.ground)) {
         tile.items.add(item);
+      } else {
+        tile.items.first = item;
       }
     } else {
       tiles[position.toString()] = Tile(position: position, items: [item]);
