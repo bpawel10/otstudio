@@ -6,15 +6,20 @@ import 'package:otstudio/src/models/position.dart';
 import 'package:otstudio/src/models/item.dart';
 import 'package:otstudio/src/models/texture.dart' as modelTexture;
 import 'package:otstudio/src/models/project.dart';
+import 'package:otstudio/src/models/atlas.dart';
 
 class MapPainter extends CustomPainter {
   final Project project;
   final Offset offset;
+  final double scale;
+  final Size viewport;
   final Offset mouse;
 
   MapPainter({
     required this.project,
     this.offset = Offset.zero,
+    this.scale = 1,
+    required this.viewport,
     this.mouse = Offset.zero,
   });
 
@@ -60,8 +65,8 @@ class MapPainter extends CustomPainter {
   void paintTiles(Canvas canvas, Size size) {
     Stopwatch renderStopwatch = new Stopwatch()..start();
 
-    Rect visiblePositionRect = tileRectToPositionRect(
-        offset & Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE));
+    Rect visiblePositionRect = tileRectToPositionRect(offset &
+        (Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE) / scale));
 
     Rect renderablePositionRect = Rect.fromCenter(
         center: visiblePositionRect.center,
@@ -98,12 +103,12 @@ class MapPainter extends CustomPainter {
     print('rendered tiles in ${renderStopwatch.elapsedMilliseconds} ms');
   }
 
-  void paintAtlas(Canvas canvas, Size size, ui.Offset offset) {
+  void paintAtlas(Canvas canvas, Size size, Atlas atlas) {
     Stopwatch renderStopwatch = new Stopwatch()..start();
 
     Rect visiblePositionRect = tileRectToPositionRect(
         Offset(offset.dx + Sprite.SIZE, offset.dy + Sprite.SIZE) &
-            Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE));
+            Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE) / scale);
 
     Rect renderablePositionRect = Rect.fromCenter(
         center: visiblePositionRect.center,
@@ -130,12 +135,12 @@ class MapPainter extends CustomPainter {
 
               modelTexture.Texture? texture =
                   project.assets.items.items[item.id]?.textures.first;
-              ui.Rect? rect = project.assets.items.atlas!.rects[item.id];
+              ui.Rect? rect = atlas.rects[item.id];
 
               if (texture != null && rect != null) {
                 transforms.add(RSTransform.fromComponents(
                     rotation: 0,
-                    scale: 1,
+                    scale: 1 / atlas.scale,
                     anchorX: 0,
                     anchorY: 0,
                     translateX: (tileOffset.dx -
@@ -160,7 +165,7 @@ class MapPainter extends CustomPainter {
     // paint.blendMode = BlendMode.srcIn;
 
     canvas.drawAtlas(
-      project.assets.items.atlas!.atlas,
+      atlas.atlas,
       transforms,
       rects,
       [],
@@ -182,18 +187,33 @@ class MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    print('paint offset $offset scale $scale size $size viewport $viewport');
+    print('paint position ${offsetToPosition(offset, 7)}');
+    // canvas.drawColor(Colors.red, ui.BlendMode.clear);
+    // canvas.drawColor(Colors.red, ui.BlendMode.dst);
+    // canvas.drawRect(Offset.zero & Size(100, 100), Paint()..color = Colors.red);
+
     canvas.translate(-offset.dx, -offset.dy);
-    canvas.clipRect(offset & size);
-    paintTiles(canvas, size);
-    if (project.map.selectedItemId != null) {
-      paintSelectedItem(canvas, project.map.selectedItemId!, offset + mouse);
+    canvas.scale(scale);
+
+    // canvas.clipRect(offset & viewport);
+    if (scale > 0.9) {
+      paintTiles(canvas, viewport);
+    } else if (scale > 0.7) {
+      paintAtlas(canvas, viewport, project.assets.items.atlas!);
+    } else {
+      paintAtlas(canvas, viewport, project.assets.items.atlas2px!);
     }
+    // if (project.map.selectedItemId != null) {
+    //   paintSelectedItem(canvas, project.map.selectedItemId!, offset + mouse);
+    // }
     // paintAtlas(canvas, size, Offset.zero);
   }
 
   @override
-  bool shouldRepaint(MapPainter old) =>
-      old.offset != offset ||
-      offsetToPosition(old.offset + old.mouse, 0) !=
-          offsetToPosition(offset + mouse, 0);
+  bool shouldRepaint(MapPainter old) => true;
+  // old.offset != offset ||
+  // old.scale != scale ||
+  // offsetToPosition(old.offset + old.mouse, 0) !=
+  //     offsetToPosition(offset + mouse, 0);
 }
