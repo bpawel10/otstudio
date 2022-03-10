@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:otstudio/src/models/items.dart';
 import 'package:otstudio/src/models/atlas.dart';
+import 'package:otstudio/src/models/sprite.dart';
 import 'package:otstudio/src/screens/editor/editor.dart';
 import 'package:otstudio/src/screens/project_configurator/sources/source.dart';
 import 'package:otstudio/src/models/project.dart';
@@ -50,11 +51,15 @@ class ProjectLoader extends StatelessWidget {
                   heightOffset: item.heightOffset,
                   textures: texturesWithImage);
             });
+
             Atlas atlas = await getAtlas(items);
+            Atlas atlas2px = await getAtlas(items, scale: 1 / 16);
 
             Project projectWithTexturesWithImages = Project(
                 path: project.path,
-                assets: Assets(items: Items(items: items, atlas: atlas)),
+                assets: Assets(
+                    items:
+                        Items(items: items, atlas: atlas, atlas2px: atlas2px)),
                 map: project.map);
             Navigator.pushReplacement(
                 context,
@@ -72,7 +77,7 @@ class ProjectLoader extends StatelessWidget {
     return fi.image;
   }
 
-  Future<Atlas> getAtlas(Map<int, Item> items) async {
+  Future<Atlas> getAtlas(Map<int, Item> items, {double scale = 1.0}) async {
     // List<Item> items2 = items.values.take(100).toList();
     List<Item> items2 = items.values.toList();
 
@@ -82,8 +87,9 @@ class ProjectLoader extends StatelessWidget {
     int maxHeight = 0;
 
     items2.forEach((item) {
-      maxWidth = max(maxWidth, item.textures.first.width.toInt());
-      maxHeight = max(maxHeight, item.textures.first.height.toInt());
+      maxWidth = max(maxWidth, (item.textures.first.width * scale).round());
+      maxHeight =
+          max(maxHeight, (item.textures.first.height.toInt() * scale).round());
     });
 
     int atlasWidth = atlasSize * maxWidth;
@@ -112,15 +118,21 @@ class ProjectLoader extends StatelessWidget {
       img.Image textureImage = img.Image.fromBytes(
           texture.width.toInt(), texture.height.toInt(), texture.bytes);
 
+      if (scale != 1) {
+        textureImage = img.copyResize(textureImage,
+            width: (texture.width * scale).round(),
+            height: (texture.height * scale).round());
+      }
+
       // img.Image resized = img.copyResize(textureImage,
       //     width: textureImage.width,
       //     height: textureImage.height,
       //     interpolation: img.Interpolation.linear);
 
-      int offsetX =
-          (index % atlasSize) * maxWidth + (maxWidth - texture.width.toInt());
+      int offsetX = (index % atlasSize) * maxWidth +
+          (maxWidth - (texture.width * scale).round());
       int offsetY = (index / atlasSize).floor() * maxHeight +
-          (maxHeight - texture.height.toInt());
+          (maxHeight - (texture.height * scale).round());
 
       if (index < 50) {
         print(
@@ -136,7 +148,7 @@ class ProjectLoader extends StatelessWidget {
         dstY: offsetY,
       );
       rects[item.id] = Offset(offsetX.toDouble(), offsetY.toDouble()) &
-          Size(texture.width.toDouble(), texture.height.toDouble());
+          Size(textureImage.width.toDouble(), textureImage.height.toDouble());
     });
 
     print('atlasWidth2 $atlasWidth atlasHeight2 $atlasHeight');
@@ -177,7 +189,7 @@ class ProjectLoader extends StatelessWidget {
     //       data.buffer.asUint8List()); // data.buffer.asUint8List());
     // }
 
-    Atlas atlas = Atlas(atlas: atlasUiImage, rects: rects);
+    Atlas atlas = Atlas(atlas: atlasUiImage, rects: rects, scale: scale);
 
     // print(
     //     'atlasUiImage width ${atlasUiImage.width} height ${atlasUiImage.height} bytes ${atlas.getBytes()}');

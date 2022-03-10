@@ -1,6 +1,10 @@
-import 'item.dart';
+import 'package:flutter/painting.dart';
+import 'package:otstudio/src/bloc/project_bloc.dart';
+import 'entity.dart';
 import 'position.dart';
 import 'tile.dart';
+import 'attributes/item.dart' as attr;
+import 'item.dart';
 
 class Area {
   static const ROOT = 'root';
@@ -28,28 +32,38 @@ class AreaMap {
   AreaMap.empty({int width = 256, int height = 256})
       : this(width: width, height: height);
 
+  Size get size => Size(width.toDouble(), height.toDouble());
+
   void addArea(String name, Area? parent) {
     areas.add(Area(name: name, parent: parent?.name ?? Area.ROOT));
   }
 
-  void addTileToArea(Area area, Tile tile) {
-    areas.firstWhere((a) => a.name == area.name).tiles.add(tile.position);
-  }
+  // void addTileToArea(Area area, Position position, Tile tile) {
+  //   areas.firstWhere((a) => a.name == area.name).tiles.add(position);
+  // }
 
-  void removeTileFromArea(Area area, Tile tile) {
-    areas.firstWhere((a) => a.name == area.name).tiles.remove(tile.position);
-  }
+  // void removeTileFromArea(Area area, Position position) {
+  //   areas.firstWhere((a) => a.name == area.name).tiles.remove(position);
+  // }
 
-  void addItem(Position position, Item item) {
+  void addEntity(Position position, Entity entity) {
     Tile? tile = tiles[position.toString()];
     if (tile != null) {
-      if (!item.ground || !tile.items.any((item) => item.ground)) {
-        tile.items.add(item);
-      } else {
-        tile.items.first = item;
-      }
+      tile.entities.add(entity);
+      // TODO: handle adding ground where tile already has ground
+      // attr.Item? itemAttr = entity.item();
+      // if (itemAttr != null) {
+      //   Item item = state.project.assets.items.items[itemAttr.id]!;
+      //   if (!item.ground || !tile.entities.any((entity) => entity.item()!.id .ground)) {
+      //     tile.entities.add(entity);
+      //   } else {
+      //     tile.items.first = item;
+      //   }
+      // } else {
+      //   tile.entities.add(entity);
+      // }
     } else {
-      tiles[position.toString()] = Tile(position: position, items: [item]);
+      tiles[position.toString()] = Tile(entities: [entity]);
       Area rootArea = areas.firstWhere((area) => area.isRoot);
       rootArea.tiles.add(position);
     }

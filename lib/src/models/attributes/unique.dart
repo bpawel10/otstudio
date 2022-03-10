@@ -1,15 +1,15 @@
 import 'dart:convert';
 import 'package:otstudio/src/models/attributes/attribute.dart';
 
-class UniqueId extends Attribute<int> {
+class Unique extends Attribute<int> {
   int id;
 
-  UniqueId(this.id);
+  Unique(this.id);
 
   @override
   Attribute fromJson(String json) {
     int id = jsonDecode(json);
-    return UniqueId(id);
+    return Unique(id);
   }
 
   @override

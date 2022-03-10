@@ -4,19 +4,25 @@ import 'package:otstudio/src/models/sprite.dart';
 import 'package:otstudio/src/models/tile.dart';
 import 'package:otstudio/src/models/position.dart';
 import 'package:otstudio/src/models/item.dart';
+import 'package:otstudio/src/models/attributes/item.dart' as attr;
+import 'package:otstudio/src/models/entity.dart';
 import 'package:otstudio/src/models/texture.dart' as modelTexture;
 import 'package:otstudio/src/models/project.dart';
 
 class MapPainter extends CustomPainter {
   final Project project;
+  final Matrix4 transformation;
   final Offset offset;
+  final double scale;
   final Offset mouse;
 
   MapPainter({
     required this.project,
-    this.offset = Offset.zero,
+    required this.transformation,
     this.mouse = Offset.zero,
-  });
+  })  : scale = transformation.getMaxScaleOnAxis(),
+        offset = Offset(-transformation.getTranslation().x,
+            -transformation.getTranslation().y);
 
   static Offset offsetToTileOffset(Offset offset) {
     double dx = Sprite.SIZE * (offset.dx / Sprite.SIZE).floorToDouble();
@@ -41,7 +47,7 @@ class MapPainter extends CustomPainter {
       (tileRect.right / Sprite.SIZE).ceil().toDouble(),
       (tileRect.bottom / Sprite.SIZE).ceil().toDouble());
 
-  void paintItem(Canvas canvas, Paint paint, Offset offset, Item item,
+  void paintItem(Canvas canvas, Paint paint, Offset offset, attr.Item item,
       {double opacity = 1.0}) {
     modelTexture.Texture? texture =
         project.assets.items.items[item.id]?.textures.first;
@@ -57,16 +63,12 @@ class MapPainter extends CustomPainter {
     }
   }
 
-  void paintTiles(Canvas canvas, Size size) {
+  void paintTiles(Canvas canvas, Rect rect) {
     Stopwatch renderStopwatch = new Stopwatch()..start();
 
-    Rect visiblePositionRect = tileRectToPositionRect(
-        offset & Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE));
-
-    Rect renderablePositionRect = Rect.fromCenter(
-        center: visiblePositionRect.center,
-        width: visiblePositionRect.width,
-        height: visiblePositionRect.height);
+    Rect positionRect = tileRectToPositionRect(rect);
+    Rect renderablePositionRect = positionRect.topLeft &
+        Size(positionRect.width + 1, positionRect.height + 1);
 
     Paint paint = Paint();
     Map<String, Tile> tiles = project.map.map.tiles;
@@ -77,11 +79,13 @@ class MapPainter extends CustomPainter {
       for (int y = renderablePositionRect.top.toInt();
           y < renderablePositionRect.bottom;
           y++) {
-        Tile? tile = tiles[Position(x, y, 7).toString()];
+        Position position = Position(x, y, 7);
+        Tile? tile = tiles[position.toString()];
 
         if (tile != null) {
-          Offset tileOffset = positionToTileOffset(tile.position);
-          tile.items.forEach((Item item) {
+          Offset tileOffset = positionToTileOffset(position);
+          tile.entities.forEach((Entity entity) {
+            attr.Item item = entity.item()!;
             paintItem(
                 canvas,
                 paint,
@@ -98,12 +102,12 @@ class MapPainter extends CustomPainter {
     print('rendered tiles in ${renderStopwatch.elapsedMilliseconds} ms');
   }
 
-  void paintAtlas(Canvas canvas, Size size, ui.Offset offset) {
+  void paintAtlas(Canvas canvas, Offset offset, Size size) {
     Stopwatch renderStopwatch = new Stopwatch()..start();
 
-    Rect visiblePositionRect = tileRectToPositionRect(
+    Rect visiblePositionRect =
         Offset(offset.dx + Sprite.SIZE, offset.dy + Sprite.SIZE) &
-            Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE));
+            Size(size.width + Sprite.SIZE, size.height + Sprite.SIZE);
 
     Rect renderablePositionRect = Rect.fromCenter(
         center: visiblePositionRect.center,
@@ -122,14 +126,16 @@ class MapPainter extends CustomPainter {
         for (int y = renderablePositionRect.top.toInt();
             y < renderablePositionRect.bottom;
             y++) {
-          Tile? tile = project.map.map.tiles[Position(x, y, z).toString()];
+          Position position = Position(x, y, z);
+          Tile? tile = project.map.map.tiles[position.toString()];
 
           if (tile != null) {
-            tile.items.forEach((item) {
-              Offset tileOffset = positionToTileOffset(tile.position);
+            tile.entities.forEach((entity) {
+              Offset tileOffset = positionToTileOffset(position);
 
+              attr.Item item = entity.item()!;
               modelTexture.Texture? texture =
-                  project.assets.items.items[item.id]?.textures.first;
+                  project.assets.items.items[entity.item()!.id]?.textures.first;
               ui.Rect? rect = project.assets.items.atlas!.rects[item.id];
 
               if (texture != null && rect != null) {
@@ -177,23 +183,26 @@ class MapPainter extends CustomPainter {
     Item item = project.assets.items.items[selectedItemId]!;
     Offset mouseTileOffset = offsetToTileOffset(mouse);
     // print('mouseTileOffset ${mouseTileOffset}');
-    paintItem(canvas, Paint(), mouseTileOffset, item, opacity: 0.5);
+    paintItem(canvas, Paint(), mouseTileOffset, attr.Item(item.id),
+        opacity: 0.5);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.translate(-offset.dx, -offset.dy);
-    canvas.clipRect(offset & size);
-    paintTiles(canvas, size);
-    if (project.map.selectedItemId != null) {
-      paintSelectedItem(canvas, project.map.selectedItemId!, offset + mouse);
-    }
+    canvas.transform(transformation.storage);
+    Rect rect = offset / scale & size / scale;
+
+    canvas.clipRect(rect);
+    paintTiles(canvas, rect);
+    // if (project.map.selectedItemId != null) {
+    //   paintSelectedItem(canvas, project.map.selectedItemId!, offset + mouse);
+    // }
     // paintAtlas(canvas, size, Offset.zero);
   }
 
   @override
-  bool shouldRepaint(MapPainter old) =>
-      old.offset != offset ||
-      offsetToPosition(old.offset + old.mouse, 0) !=
-          offsetToPosition(offset + mouse, 0);
+  bool shouldRepaint(MapPainter old) => true;
+  // old.offset != offset ||
+  // offsetToPosition(old.offset + old.mouse, 0) !=
+  //     offsetToPosition(offset + mouse, 0);
 }

@@ -2,8 +2,10 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:otstudio/src/models/area_map.dart';
+import 'package:otstudio/src/models/entity.dart';
 import 'package:otstudio/src/models/item.dart';
 import 'package:otstudio/src/models/position.dart';
+import 'package:otstudio/src/models/attributes/item.dart' as attr;
 import 'package:otstudio/src/progress_tracker.dart';
 import 'package:otstudio/src/serializers/disk_serializer.dart';
 import 'package:otstudio/src/serializers/items/dat_serializer.dart';
@@ -132,13 +134,13 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
 
                         if (groundId != null) {
                           // print('groundId $groundId');
-                          map.addItem(
-                              position,
-                              Item(
-                                id: groundId,
-                                name: groundId.toString(),
-                                ground: true,
-                              ));
+                          map.addEntity(position,
+                              Entity(attributes: [attr.Item(groundId)]));
+                          // Item(
+                          //   id: groundId,
+                          //   name: groundId.toString(),
+                          //   ground: true,
+                          // ));
                         }
 
                         if (tileType == _OtbmNodeType.houseTile) {
@@ -148,7 +150,8 @@ class OtbmSerializer extends DiskSerializer<AreaMap> {
                         Item? item = otbm.getItem(byte3, position, version);
 
                         if (item != null) {
-                          map.addItem(position, item);
+                          map.addEntity(position,
+                              Entity(attributes: [attr.Item(item.id)]));
                         }
 
                         byte3 = otbm.getUint8();

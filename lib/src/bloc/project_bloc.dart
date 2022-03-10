@@ -1,6 +1,8 @@
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:otstudio/src/models/attributes/item.dart' as attr;
+import 'package:otstudio/src/models/entity.dart';
 import 'package:otstudio/src/models/position.dart';
 import 'package:otstudio/src/models/project.dart';
 import 'package:otstudio/src/progress_tracker.dart';
@@ -39,12 +41,14 @@ class ProjectBloc extends Bloc<ProjectEvent, ProjectState> {
             assets: state.project.assets,
             map: state.project.map..selectedItemId = event.id))));
     on<AddItemToMapProjectEvent>((event, emit) {
-      Item item = state.project.assets.items.items[event.id]!;
+      // Item item = state.project.assets.items.items[event.id]!;
       emit(ProjectState(
           project: Project(
               path: state.project.path,
               assets: state.project.assets,
-              map: state.project.map..map.addItem(event.position, item))));
+              map: state.project.map
+                ..map.addEntity(event.position,
+                    Entity(attributes: [attr.Item(event.id)])))));
     });
     on<SaveProjectEvent>((event, emit) async {
       emit(ProjectState(

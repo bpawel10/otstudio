@@ -1,15 +1,10 @@
-import 'package:otstudio/src/models/position.dart';
-import 'item.dart';
+import 'entity.dart';
 
 class Tile {
-  final Position position;
-  final List<Item> items;
+  final List<Entity> entities;
 
-  Tile({required this.position, required this.items});
+  Tile({required this.entities});
 
-  Map<String, dynamic> toJson() => {
-        position.toString(): {
-          'items': items.map((item) => item.toJson()).toList()
-        },
-      };
+  Map<String, dynamic> toJson() =>
+      {'entities': entities.map((item) => item.toJson()).toList()};
 }
